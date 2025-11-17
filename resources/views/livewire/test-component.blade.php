@@ -3,6 +3,6 @@
 
     <button wire:click="increment"
         class="px-4 py-2 bg-blue-500 text-white rounded">
-        เพิ่มจำนวน
+        เพิ่มจำนวน555
     </button>
 </div>
