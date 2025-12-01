@@ -10,7 +10,7 @@
 </head>
 <body>
     <div class="container mt-4">
-555555
+        @yield('content')
     </div>
 
     @livewireScripts

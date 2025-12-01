@@ -1,12 +1,30 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-
 use App\Livewire\TestComponent;
 
 Route::get('/', function () {
     return view('layouts.app');
 });
 
+Route::get('/test', TestComponent::class);
 
- Route::get('/test', TestComponent::class);
+Route::view('/login', 'auth.login')
+    ->name('login')
+    ->middleware('guest');
+
+Route::get('/dashboard', function () {
+    return view('dashboard');
+})->middleware('auth')->name('dashboard');
+
+Route::get('/login-mvc', [\App\Http\Controllers\Auth\LoginController::class, 'show'])
+    ->name('login.mvc')
+    ->middleware('guest');
+
+Route::post('/login-mvc', [\App\Http\Controllers\Auth\LoginController::class, 'login'])
+    ->name('login.mvc.submit')
+    ->middleware('guest');
+
+Route::post('/logout', [\App\Http\Controllers\Auth\LoginController::class, 'logout'])
+    ->name('logout')
+    ->middleware('auth');
