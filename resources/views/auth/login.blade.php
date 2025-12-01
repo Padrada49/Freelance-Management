@@ -1,8 +1,8 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="min-h-screen flex items-center justify-center">
-  <div class="w-full max-w-md">
+<div class="min-h-screen flex items-center justify-center bg-gray-600">
+  <div class="w-full max-w-4xl">
     @livewire('auth.login')
   </div>
 </div>

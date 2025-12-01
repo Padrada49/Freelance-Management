@@ -4,7 +4,9 @@ use Illuminate\Support\Facades\Route;
 use App\Livewire\TestComponent;
 
 Route::get('/', function () {
-    return view('layouts.app');
+    return auth()->check()
+        ? redirect()->route('dashboard')
+        : redirect()->route('login');
 });
 
 Route::get('/test', TestComponent::class);

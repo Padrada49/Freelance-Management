@@ -25,10 +25,7 @@ class Login extends Component
             return redirect()->intended('/dashboard');
         }
 
-        $this->addError('email', 'The provided credentials are incorrect.');
-        $this->dispatchBrowserEvent('login-failed', [
-            'message' => 'The provided credentials are incorrect.',
-        ]);
+        $this->addError('password', 'The provided credentials are incorrect.');
     }
 
     public function render()
