@@ -78,6 +78,26 @@
                         </div>
 
                         <div>
+                            <label for="profile_image" class="block text-sm font-medium text-gray-700 mb-2">Profile Picture (Optional)</label>
+                            <div class="relative">
+                                <input
+                                    id="profile_image"
+                                    type="file"
+                                    wire:model.live="profile_image"
+                                    accept="image/*"
+                                    class="appearance-none block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent" />
+                            </div>
+                            @error('profile_image') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
+
+                            @if ($profile_image)
+                                <div class="mt-4 text-center">
+                                    <p class="text-sm text-gray-600 mb-2">Preview:</p>
+                                    <img src="{{ $profile_image->temporaryUrl() }}" alt="Profile Preview" class="w-24 h-24 rounded-lg object-cover mx-auto border border-gray-200">
+                                </div>
+                            @endif
+                        </div>
+
+                        <div>
                             <button
                                 type="submit"
                                 wire:loading.attr="disabled"

@@ -22,6 +22,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'profile_image_path',
     ];
 
     /**
@@ -45,5 +46,26 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function files()
+    {
+        return $this->hasMany(File::class, 'module_id')->where('module_name', 'user');
+    }
+
+    public function profileImage()
+    {
+        return $this->hasOne(File::class, 'module_id')
+                    ->where('module_name', 'user')
+                    ->where('file_type', 'image')
+                    ->latest('id');
+    }
+
+    public function getProfileImageUrlAttribute()
+    {
+        if ($this->profile_image_path) {
+            return asset('storage/' . $this->profile_image_path);
+        }
+        return 'https://i.pravatar.cc/40?u=' . $this->id;
     }
 }

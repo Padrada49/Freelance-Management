@@ -118,7 +118,7 @@
                         <!-- Profile -->
                         <div class="relative">
                             <button id="profileBtn" class="flex items-center gap-2 p-1 rounded hover:bg-slate-50">
-                                <img src="https://i.pravatar.cc/40?u={{ auth()->user()->id }}" alt="avatar" class="w-8 h-8 rounded-full" />
+                                <img src="{{ auth()->user()->profile_image_url }}" alt="avatar" class="w-8 h-8 rounded-full object-cover" />
                                 <span class="hidden sm:inline text-sm font-medium text-slate-700">{{ auth()->user()->name }}</span>
                                 <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
