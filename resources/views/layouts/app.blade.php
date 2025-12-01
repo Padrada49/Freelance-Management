@@ -10,7 +10,7 @@
 </head>
 <body>
     <div class="container mt-4">
-        {{ $slot }}
+555555
     </div>
 
     @livewireScripts
