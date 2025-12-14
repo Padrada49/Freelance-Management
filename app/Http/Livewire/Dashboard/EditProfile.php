@@ -72,6 +72,9 @@ class EditProfile extends Component
 
         $user->save();
 
+        // Refresh the user in auth cache
+        auth()->setUser($user);
+
         session()->flash('success', 'Profile updated successfully.');
         $this->resetForm();
         $this->showModal = false;

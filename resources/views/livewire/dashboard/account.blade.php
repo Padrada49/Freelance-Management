@@ -1,10 +1,13 @@
 <div>
-    <div class="flex items-center justify-between mb-4">
+    <div class="flex items-center justify-between mb-6">
         <div>
             <h3 class="text-lg font-semibold">Accounts</h3>
             <p class="text-sm text-slate-600">Manage user accounts in the system.</p>
         </div>
-        <div>
+        <div class="flex gap-2">
+            @if($search || $filterRole || $filterDate)
+                <button wire:click="clearFilters" class="px-3 py-2 border border-yellow-500 text-yellow-600 rounded hover:bg-yellow-50">Clear Filters</button>
+            @endif
             <button wire:click="$set('showCreateModal', true)" class="px-3 py-2 bg-black text-white rounded">Create user</button>
         </div>
     </div>
@@ -17,34 +20,110 @@
         <div class="mb-4 p-3 bg-red-50 border border-red-100 text-red-800 rounded">{{ session('error') }}</div>
     @endif
 
+    <!-- Filters -->
+    <div class="bg-white rounded shadow p-4 mb-6">
+        <h4 class="font-medium text-slate-700 mb-4">Filters</h4>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <!-- Search -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Search (Name/Email)</label>
+                <input type="text" wire:model.live="search" placeholder="Search..." class="w-full border px-3 py-2 rounded text-sm" />
+            </div>
+
+            <!-- Role Filter -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Role</label>
+                <select wire:model.live="filterRole" class="w-full border px-3 py-2 rounded text-sm">
+                    <option value="">All Roles</option>
+                    <option value="admin">Admin</option>
+                    <option value="freelance">Freelancer</option>
+                    <option value="customer">Customer</option>
+                </select>
+            </div>
+
+            <!-- Date Filter -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Created Date</label>
+                <input type="date" wire:model.live="filterDate" class="w-full border px-3 py-2 rounded text-sm" />
+            </div>
+
+            <!-- Items per page info -->
+            <div class="flex items-end">
+                <div class="text-sm text-slate-600">
+                    <p>Showing <strong>{{ $users->count() }}</strong> of <strong>{{ $users->total() }}</strong> users</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="overflow-x-auto bg-white rounded shadow">
         <table class="min-w-full divide-y">
             <thead>
                 <tr class="text-left text-sm font-medium text-slate-600 bg-slate-50">
-                    <th class="px-4 py-3">ID</th>
-                    <th class="px-4 py-3">Name</th>
-                    <th class="px-4 py-3">Email</th>
-                    <th class="px-4 py-3">Role</th>
-                    <th class="px-4 py-3">Created</th>
+                    <th class="px-4 py-3 cursor-pointer hover:bg-slate-100" wire:click="sortBy('id')">
+                        ID
+                        @if($sortBy === 'id')
+                            <span class="ml-1">{{ $sortDirection === 'asc' ? '↑' : '↓' }}</span>
+                        @endif
+                    </th>
+                    <th class="px-4 py-3">Profile</th>
+                    <th class="px-4 py-3 cursor-pointer hover:bg-slate-100" wire:click="sortBy('name')">
+                        Name
+                        @if($sortBy === 'name')
+                            <span class="ml-1">{{ $sortDirection === 'asc' ? '↑' : '↓' }}</span>
+                        @endif
+                    </th>
+                    <th class="px-4 py-3 cursor-pointer hover:bg-slate-100" wire:click="sortBy('email')">
+                        Email
+                        @if($sortBy === 'email')
+                            <span class="ml-1">{{ $sortDirection === 'asc' ? '↑' : '↓' }}</span>
+                        @endif
+                    </th>
+                    <th class="px-4 py-3 cursor-pointer hover:bg-slate-100" wire:click="sortBy('role')">
+                        Role
+                        @if($sortBy === 'role')
+                            <span class="ml-1">{{ $sortDirection === 'asc' ? '↑' : '↓' }}</span>
+                        @endif
+                    </th>
+                    <th class="px-4 py-3 cursor-pointer hover:bg-slate-100" wire:click="sortBy('created_at')">
+                        Created
+                        @if($sortBy === 'created_at')
+                            <span class="ml-1">{{ $sortDirection === 'asc' ? '↑' : '↓' }}</span>
+                        @endif
+                    </th>
                     <th class="px-4 py-3">Actions</th>
                 </tr>
             </thead>
             <tbody class="text-sm text-slate-700 divide-y">
-                @foreach($users as $u)
-                    <tr>
+                @forelse($users as $u)
+                    <tr class="hover:bg-slate-50">
                         <td class="px-4 py-3">{{ $u->id }}</td>
-                        <td class="px-4 py-3">{{ $u->name }}</td>
-                        <td class="px-4 py-3">{{ $u->email }}</td>
-                        <td class="px-4 py-3"><span class="px-2 py-1 bg-slate-100 rounded text-xs">{{ $u->role }}</span></td>
-                        <td class="px-4 py-3">{{ $u->created_at->format('Y-m-d') }}</td>
                         <td class="px-4 py-3">
+                            <img src="{{ $u->profile_image_url }}" alt="{{ $u->name }}" class="w-10 h-10 rounded-full object-cover border border-slate-200" title="{{ $u->name }}" />
+                        </td>
+                        <td class="px-4 py-3">{{ $u->name }}</td>
+                        <td class="px-4 py-3 text-slate-600">{{ $u->email }}</td>
+                        <td class="px-4 py-3"><span class="px-2 py-1 bg-slate-100 rounded text-xs font-medium">{{ ucfirst($u->role) }}</span></td>
+                        <td class="px-4 py-3">{{ $u->created_at->format('Y-m-d') }}</td>
+                        <td class="px-4 py-3 space-x-2">
                             <button wire:click="edit({{ $u->id }})" class="px-2 py-1 border rounded text-sm hover:bg-slate-50">Edit</button>
                             <button wire:click="confirmDelete({{ $u->id }})" class="px-2 py-1 border rounded text-sm text-red-600 hover:bg-red-50">Delete</button>
                         </td>
                     </tr>
-                @endforeach
+                @empty
+                    <tr>
+                        <td colspan="7" class="px-4 py-8 text-center text-slate-500">
+                            No users found. Try adjusting your filters.
+                        </td>
+                    </tr>
+                @endforelse
             </tbody>
         </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="mt-6">
+        {{ $users->links() }}
     </div>
 
     <!-- Create Modal -->

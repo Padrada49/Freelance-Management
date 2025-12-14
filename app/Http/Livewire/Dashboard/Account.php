@@ -4,6 +4,7 @@ namespace App\Http\Livewire\Dashboard;
 
 use Livewire\Component;
 use Livewire\WithFileUploads;
+use Livewire\WithPagination;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
@@ -11,12 +12,18 @@ use App\Models\File;
 
 class Account extends Component
 {
-    use WithFileUploads;
+    use WithFileUploads, WithPagination;
 
-    public $users = [];
     public $showCreateModal = false;
     public $showEditModal = false;
     public $confirmingDeleteId = null;
+
+    // Filter properties
+    public $search = '';
+    public $filterRole = '';
+    public $filterDate = '';
+    public $sortBy = 'id';
+    public $sortDirection = 'desc';
 
     // Form fields
     public $editingUserId = null;
@@ -27,14 +34,13 @@ class Account extends Component
     public $password_confirmation;
     public $profile_image;
 
-    public function mount()
-    {
-        $this->loadUsers();
-    }
+    protected $queryString = ['search', 'filterRole', 'filterDate', 'sortBy', 'sortDirection'];
 
-    public function loadUsers()
+    public function updated($property)
     {
-        $this->users = User::orderBy('id', 'desc')->get();
+        if (in_array($property, ['search', 'filterRole', 'filterDate', 'sortBy', 'sortDirection'])) {
+            $this->resetPage();
+        }
     }
 
     protected function rules()
@@ -88,7 +94,6 @@ class Account extends Component
         session()->flash('success', 'User created successfully.');
         $this->resetForm();
         $this->showCreateModal = false;
-        $this->loadUsers();
     }
 
     public function edit($id)
@@ -139,7 +144,6 @@ class Account extends Component
         session()->flash('success', 'User updated successfully.');
         $this->resetForm();
         $this->showEditModal = false;
-        $this->loadUsers();
     }
 
     public function confirmDelete($id)
@@ -161,7 +165,26 @@ class Account extends Component
         $user->delete();
         session()->flash('success', 'User deleted successfully.');
         $this->confirmingDeleteId = null;
-        $this->loadUsers();
+    }
+
+    public function clearFilters()
+    {
+        $this->search = '';
+        $this->filterRole = '';
+        $this->filterDate = '';
+        $this->sortBy = 'id';
+        $this->sortDirection = 'desc';
+        $this->resetPage();
+    }
+
+    public function sortBy($column)
+    {
+        if ($this->sortBy === $column) {
+            $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            $this->sortBy = $column;
+            $this->sortDirection = 'asc';
+        }
     }
 
     protected function resetForm()
@@ -177,6 +200,31 @@ class Account extends Component
 
     public function render()
     {
-        return view('livewire.dashboard.account', ['users' => $this->users]);
+        $query = User::query();
+
+        // Search filter
+        if ($this->search) {
+            $query->where(function ($q) {
+                $q->where('name', 'like', '%' . $this->search . '%')
+                  ->orWhere('email', 'like', '%' . $this->search . '%');
+            });
+        }
+
+        // Role filter
+        if ($this->filterRole) {
+            $query->where('role', $this->filterRole);
+        }
+
+        // Date filter
+        if ($this->filterDate) {
+            $query->whereDate('created_at', $this->filterDate);
+        }
+
+        // Sorting
+        $query->orderBy($this->sortBy, $this->sortDirection);
+
+        return view('livewire.dashboard.account', [
+            'users' => $query->paginate(10),
+        ]);
     }
 }
