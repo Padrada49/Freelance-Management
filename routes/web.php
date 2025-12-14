@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Livewire\TestComponent;
 use App\Http\Livewire\Auth\Register;
+use App\Http\Livewire\Dashboard\ProjectDetail;
 
 Route::get('/', function () {
     return auth()->check()
@@ -23,6 +24,10 @@ Route::get('/register', Register::class)
 Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware('auth')->name('dashboard');
+
+Route::get('/dashboard/projects/{id}', ProjectDetail::class)
+    ->middleware('auth')
+    ->name('dashboard.projects.detail');
 
 Route::get('/login-mvc', [\App\Http\Controllers\Auth\LoginController::class, 'show'])
     ->name('login.mvc')
