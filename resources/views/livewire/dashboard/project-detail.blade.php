@@ -2,11 +2,11 @@
     <!-- Header -->
     <div class="flex items-center justify-between mb-6">
         <div class="flex items-center gap-3">
-            <a href="{{ route('dashboard.projects') }}" class="text-slate-600 hover:text-slate-800">
+            <button onclick="window.history.back()" class="text-slate-600 hover:text-slate-800">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                 </svg>
-            </a>
+            </button>
             <div>
                 <h3 class="text-xl font-bold">{{ $project->name }}</h3>
                 <p class="text-sm text-slate-500">

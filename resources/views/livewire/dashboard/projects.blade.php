@@ -45,7 +45,7 @@
                     <div class="flex-1">
                         <h4 class="font-semibold text-slate-900">{{ $project->name }}</h4>
                         <p class="text-xs text-slate-500 mt-1">
-                            by 
+                            by
                             @if($project->freelance)
                                 <span class="font-medium text-blue-600">{{ $project->freelance->name }}</span>
                             @else

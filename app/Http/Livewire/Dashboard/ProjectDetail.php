@@ -47,6 +47,11 @@ class ProjectDetail extends Component
         $this->loadProject();
     }
 
+    public function backToProjects()
+    {
+        $this->dispatch('backToProjects');
+    }
+
     public function loadProject()
     {
         $query = Project::with(['creator', 'freelance', 'customers', 'tasks.assignee', 'files']);

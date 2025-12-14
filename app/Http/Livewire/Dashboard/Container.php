@@ -8,9 +8,16 @@ class Container extends Component
 {
     public $active = 'home';
 
+    protected $listeners = ['backToProjects' => 'goToProjects'];
+
     public function setActive($name)
     {
         $this->active = $name;
+    }
+
+    public function goToProjects()
+    {
+        $this->active = 'projects';
     }
 
     public function canSeeMenu($menuName)
