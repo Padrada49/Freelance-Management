@@ -9,11 +9,19 @@
             </a>
             <div>
                 <h3 class="text-xl font-bold">{{ $project->name }}</h3>
-                <p class="text-sm text-slate-500">by {{ $project->creator->name }} • {{ $project->created_at->format('M d, Y') }}</p>
+                <p class="text-sm text-slate-500">
+                    by
+                    @if($project->freelance)
+                        <span class="font-medium text-blue-600">{{ $project->freelance->name }}</span>
+                    @else
+                        {{ $project->creator->name }}
+                    @endif
+                    • {{ $project->created_at->format('M d, Y') }}
+                </p>
             </div>
         </div>
         <div class="flex items-center gap-2">
-            @if(auth()->user()->role === 'admin' || $project->created_by === auth()->id())
+            @if(auth()->user()->role === 'admin' || $project->created_by === auth()->id() || $project->freelance_id === auth()->id())
                 <select wire:change="updateStatus($event.target.value)"
                     class="px-3 py-1.5 rounded-lg text-sm font-medium border-0 focus:ring-2 focus:ring-black cursor-pointer
                     @if($project->status === 'active') bg-green-100 text-green-800
@@ -27,9 +35,11 @@
                 <button wire:click="editProject" class="px-3 py-1.5 border border-slate-300 rounded-lg hover:bg-slate-50 text-sm">
                     Edit
                 </button>
-                <button wire:click="confirmDelete" class="px-3 py-1.5 border border-red-500 text-red-600 rounded-lg hover:bg-red-50 text-sm">
-                    Delete
-                </button>
+                @if(auth()->user()->role === 'admin' || $project->created_by === auth()->id())
+                    <button wire:click="confirmDelete" class="px-3 py-1.5 border border-red-500 text-red-600 rounded-lg hover:bg-red-50 text-sm">
+                        Delete
+                    </button>
+                @endif
             @else
                 <span class="px-3 py-1.5 rounded-lg text-sm font-medium
                     @if($project->status === 'active') bg-green-100 text-green-800
@@ -77,7 +87,7 @@
             <div class="bg-white rounded-lg shadow">
                 <div class="flex items-center justify-between p-4 border-b">
                     <h4 class="font-semibold">Tasks</h4>
-                    @if(auth()->user()->role === 'admin' || $project->created_by === auth()->id())
+                    @if(auth()->user()->role === 'admin' || $project->created_by === auth()->id() || $project->freelance_id === auth()->id())
                         <button wire:click="addNewTask" class="px-3 py-1.5 bg-black text-white rounded-lg text-sm hover:bg-slate-800">
                             + Add Task
                         </button>
@@ -154,7 +164,7 @@
                                         @endif
                                     </div>
                                 </div>
-                                @if(auth()->user()->role === 'admin' || $project->created_by === auth()->id())
+                                @if(auth()->user()->role === 'admin' || $project->created_by === auth()->id() || $project->freelance_id === auth()->id())
                                     <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition">
                                         <button wire:click="editTask({{ $task->id }})" class="p-2 text-blue-600 hover:bg-blue-50 rounded">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -186,11 +196,39 @@
 
         <!-- Sidebar -->
         <div class="space-y-6">
+            <!-- Freelance (Admin Only) -->
+            @if(auth()->user()->role === 'admin')
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h4 class="font-semibold text-sm">Freelance Owner</h4>
+                        <button wire:click="editFreelance" class="text-xs text-blue-600 hover:text-blue-800">
+                            {{ $project->freelance ? 'Change' : 'Assign' }}
+                        </button>
+                    </div>
+                    @if($project->freelance)
+                        <div class="flex items-center gap-2">
+                            <img src="{{ $project->freelance->profile_image_url }}" alt="{{ $project->freelance->name }}" class="w-10 h-10 rounded-full" />
+                            <div class="min-w-0">
+                                <p class="text-sm font-medium truncate">{{ $project->freelance->name }}</p>
+                                <p class="text-xs text-slate-500 truncate">{{ $project->freelance->email }}</p>
+                            </div>
+                        </div>
+                    @else
+                        <div class="flex items-center gap-2 p-3 bg-slate-50 rounded-lg border border-dashed border-slate-300">
+                            <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                            <p class="text-xs text-slate-500">No freelance assigned</p>
+                        </div>
+                    @endif
+                </div>
+            @endif
+
             <!-- Customers -->
             <div class="bg-white rounded-lg shadow p-6">
                 <div class="flex items-center justify-between mb-4">
                     <h4 class="font-semibold text-sm">Customers</h4>
-                    @if(auth()->user()->role === 'admin' || $project->created_by === auth()->id())
+                    @if(auth()->user()->role === 'admin' || $project->created_by === auth()->id() || $project->freelance_id === auth()->id())
                         <button wire:click="editCustomers" class="text-xs text-blue-600 hover:text-blue-800">
                             Edit
                         </button>
@@ -216,8 +254,8 @@
             <!-- Files -->
             <div class="bg-white rounded-lg shadow p-4">
                 <h4 class="font-semibold text-sm mb-3">Files ({{ $project->files->count() }}/5)</h4>
-                
-                @if(auth()->user()->role === 'admin' || $project->created_by === auth()->id())
+
+                @if(auth()->user()->role === 'admin' || $project->created_by === auth()->id() || $project->freelance_id === auth()->id())
                     @if($project->files->count() < 5)
                         <label class="block mb-3">
                             <div class="border-2 border-dashed border-slate-300 rounded-lg p-4 text-center hover:border-slate-400 hover:bg-slate-50 transition cursor-pointer">
@@ -250,8 +288,8 @@
                                     @endif
                                     <p class="text-xs font-medium text-slate-900 truncate flex-1">{{ $file->file_name }}</p>
                                 </a>
-                                @if(auth()->user()->role === 'admin' || $project->created_by === auth()->id())
-                                    <button wire:click="confirmDeleteFile({{ $file->id }})" 
+                                @if(auth()->user()->role === 'admin' || $project->created_by === auth()->id() || $project->freelance_id === auth()->id())
+                                    <button wire:click="confirmDeleteFile({{ $file->id }})"
                                         class="text-slate-400 hover:text-red-600 p-1 opacity-0 group-hover:opacity-100 transition">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -346,6 +384,54 @@
                         <div class="flex gap-3 pt-4 border-t">
                             <button type="submit" class="flex-1 px-4 py-2 bg-black text-white rounded">Save Changes</button>
                             <button type="button" wire:click="$set('showEditCustomersModal', false)" class="flex-1 px-4 py-2 border rounded">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- Edit Freelance Modal -->
+    @if($showEditFreelanceModal)
+        <div class="fixed inset-0 z-50 flex items-center justify-center">
+            <div class="absolute inset-0 bg-black opacity-40" wire:click="$set('showEditFreelanceModal', false)"></div>
+            <div class="relative bg-white rounded-lg shadow-lg w-full max-w-md mx-4 overflow-hidden">
+                <div class="flex items-center justify-between p-4 border-b">
+                    <h3 class="text-lg font-semibold">Assign Freelance</h3>
+                    <button wire:click="$set('showEditFreelanceModal', false)" class="text-slate-600 hover:text-slate-800">&times;</button>
+                </div>
+
+                <div class="p-6">
+                    <form wire:submit.prevent="updateFreelance" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-3">Select Freelance (Only 1)</label>
+                            <div class="space-y-2 border rounded p-3 max-h-64 overflow-y-auto">
+                                <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-2 rounded">
+                                    <input type="radio" wire:model.defer="selectedFreelance" value="" class="rounded" />
+                                    <div class="flex-1">
+                                        <p class="text-sm font-medium text-slate-600">No Freelance</p>
+                                        <p class="text-xs text-slate-400">Remove freelance assignment</p>
+                                    </div>
+                                </label>
+                                @forelse($freelances as $freelance)
+                                    <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-2 rounded">
+                                        <input type="radio" wire:model.defer="selectedFreelance" value="{{ $freelance->id }}" class="rounded" />
+                                        <img src="{{ $freelance->profile_image_url }}" alt="{{ $freelance->name }}" class="w-8 h-8 rounded-full" />
+                                        <div class="flex-1">
+                                            <p class="text-sm font-medium">{{ $freelance->name }}</p>
+                                            <p class="text-xs text-slate-500">{{ $freelance->email }}</p>
+                                        </div>
+                                    </label>
+                                @empty
+                                    <p class="text-sm text-slate-500 text-center py-4">No freelances available</p>
+                                @endforelse
+                            </div>
+                            @error('selectedFreelance') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
+                        </div>
+
+                        <div class="flex gap-3 pt-4 border-t">
+                            <button type="submit" class="flex-1 px-4 py-2 bg-black text-white rounded">Save Changes</button>
+                            <button type="button" wire:click="$set('showEditFreelanceModal', false)" class="flex-1 px-4 py-2 border rounded">Cancel</button>
                         </div>
                     </form>
                 </div>

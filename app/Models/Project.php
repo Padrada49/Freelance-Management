@@ -13,6 +13,7 @@ class Project extends Model
         'name',
         'description',
         'created_by',
+        'freelance_id',
         'status',
     ];
 
@@ -24,6 +25,11 @@ class Project extends Model
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function freelance()
+    {
+        return $this->belongsTo(User::class, 'freelance_id');
     }
 
     public function customers()

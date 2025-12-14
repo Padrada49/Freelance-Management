@@ -21,6 +21,7 @@ class ProjectDetail extends Component
     public $showEditModal = false;
     public $showEditCustomersModal = false;
     public $showUploadFilesModal = false;
+    public $showEditFreelanceModal = false;
     public $confirmingDeleteId = null;
     public $confirmingDeleteTaskId = null;
     public $confirmingDeleteFileId = null;
@@ -30,6 +31,7 @@ class ProjectDetail extends Component
     public $description;
     public $status;
     public $selectedCustomers = [];
+    public $selectedFreelance = null;
 
     // File uploads
     public $uploadedFiles = [];
@@ -47,13 +49,16 @@ class ProjectDetail extends Component
 
     public function loadProject()
     {
-        $query = Project::with(['creator', 'customers', 'tasks.assignee', 'files']);
+        $query = Project::with(['creator', 'freelance', 'customers', 'tasks.assignee', 'files']);
 
         $user = Auth::user();
 
         // Apply role-based filtering
         if ($user->role === 'freelance') {
-            $query->where('created_by', $user->id);
+            $query->where(function ($q) use ($user) {
+                $q->where('created_by', $user->id)
+                  ->orWhere('freelance_id', $user->id);
+            });
         } elseif ($user->role === 'customer') {
             $query->whereHas('customers', function ($q) use ($user) {
                 $q->where('customer_id', $user->id);
@@ -85,11 +90,28 @@ class ProjectDetail extends Component
         ];
     }
 
+    protected function canManageProject()
+    {
+        $user = Auth::user();
+
+        // Admin can manage all projects
+        if ($user->role === 'admin') {
+            return true;
+        }
+
+        // Freelance can manage if they created it OR if they are assigned as freelance
+        if ($user->role === 'freelance') {
+            return $this->project->created_by === $user->id || $this->project->freelance_id === $user->id;
+        }
+
+        return false;
+    }
+
     public function editProject()
     {
         // Check authorization
-        if (Auth::user()->role === 'freelance' && $this->project->created_by !== Auth::id()) {
-            $this->dispatch('notify', message: 'You can only edit your own projects.', type: 'warning');
+        if (!$this->canManageProject()) {
+            $this->dispatch('notify', message: 'You do not have permission to edit this project.', type: 'warning');
             return;
         }
 
@@ -102,8 +124,8 @@ class ProjectDetail extends Component
     public function editCustomers()
     {
         // Check authorization
-        if (Auth::user()->role === 'freelance' && $this->project->created_by !== Auth::id()) {
-            $this->dispatch('notify', message: 'You can only edit your own projects.', type: 'warning');
+        if (!$this->canManageProject()) {
+            $this->dispatch('notify', message: 'You do not have permission to edit this project.', type: 'warning');
             return;
         }
 
@@ -115,8 +137,8 @@ class ProjectDetail extends Component
     {
         try {
             // Check authorization
-            if (Auth::user()->role === 'freelance' && $this->project->created_by !== Auth::id()) {
-                $this->dispatch('notify', message: 'You can only edit your own projects.', type: 'warning');
+            if (!$this->canManageProject()) {
+                $this->dispatch('notify', message: 'You do not have permission to edit this project.', type: 'warning');
                 return;
             }
 
@@ -144,8 +166,8 @@ class ProjectDetail extends Component
             ]);
 
             // Check authorization
-            if (Auth::user()->role === 'freelance' && $this->project->created_by !== Auth::id()) {
-                $this->dispatch('notify', message: 'You can only edit your own projects.', type: 'warning');
+            if (!$this->canManageProject()) {
+                $this->dispatch('notify', message: 'You do not have permission to edit this project.', type: 'warning');
                 return;
             }
 
@@ -171,8 +193,8 @@ class ProjectDetail extends Component
             ]);
 
             // Check authorization
-            if (Auth::user()->role === 'freelance' && $this->project->created_by !== Auth::id()) {
-                $this->dispatch('notify', message: 'You can only edit your own projects.', type: 'warning');
+            if (!$this->canManageProject()) {
+                $this->dispatch('notify', message: 'You do not have permission to edit this project.', type: 'warning');
                 return;
             }
 
@@ -195,9 +217,10 @@ class ProjectDetail extends Component
     public function deleteProject()
     {
         try {
-            // Check authorization
-            if (Auth::user()->role === 'freelance' && $this->project->created_by !== Auth::id()) {
-                $this->dispatch('notify', message: 'You can only delete your own projects.', type: 'warning');
+            // Check authorization - only admin or creator can delete
+            $user = Auth::user();
+            if ($user->role !== 'admin' && $this->project->created_by !== $user->id) {
+                $this->dispatch('notify', message: 'Only admin or project creator can delete this project.', type: 'warning');
                 $this->confirmingDeleteId = null;
                 return;
             }
@@ -316,8 +339,8 @@ class ProjectDetail extends Component
     {
         try {
             // Check authorization
-            if (Auth::user()->role === 'freelance' && $this->project->created_by !== Auth::id()) {
-                $this->dispatch('notify', message: 'You can only manage files for your own projects.', type: 'warning');
+            if (!$this->canManageProject()) {
+                $this->dispatch('notify', message: 'You do not have permission to manage files for this project.', type: 'warning');
                 $this->uploadedFiles = [];
                 return;
             }
@@ -401,6 +424,52 @@ class ProjectDetail extends Component
         }
     }
 
+    public function editFreelance()
+    {
+        // Only admin can edit freelance
+        if (Auth::user()->role !== 'admin') {
+            $this->dispatch('notify', message: 'Only admin can assign freelance.', type: 'warning');
+            return;
+        }
+
+        $this->selectedFreelance = $this->project->freelance_id;
+        $this->showEditFreelanceModal = true;
+    }
+
+    public function updateFreelance()
+    {
+        try {
+            // Only admin can edit freelance
+            if (Auth::user()->role !== 'admin') {
+                $this->dispatch('notify', message: 'Only admin can assign freelance.', type: 'warning');
+                return;
+            }
+
+            $this->validate([
+                'selectedFreelance' => 'nullable|exists:users,id',
+            ]);
+
+            // Verify that selected user is actually a freelance
+            if ($this->selectedFreelance) {
+                $freelance = User::find($this->selectedFreelance);
+                if ($freelance->role !== 'freelance') {
+                    $this->dispatch('notify', message: 'Selected user is not a freelance.', type: 'error');
+                    return;
+                }
+            }
+
+            $this->project->update([
+                'freelance_id' => $this->selectedFreelance,
+            ]);
+
+            $this->dispatch('notify', message: 'Freelance updated successfully!', type: 'success');
+            $this->showEditFreelanceModal = false;
+            $this->loadProject();
+        } catch (\Exception $e) {
+            $this->dispatch('notify', message: 'Failed to update freelance. ' . $e->getMessage(), type: 'error');
+        }
+    }
+
 
 
     public function render()
@@ -408,6 +477,7 @@ class ProjectDetail extends Component
         return view('livewire.dashboard.project-detail', [
             'customers' => User::where('role', 'customer')->get(),
             'users' => User::whereIn('role', ['admin', 'freelance', 'customer'])->get(),
+            'freelances' => User::where('role', 'freelance')->get(),
         ]);
     }
 }

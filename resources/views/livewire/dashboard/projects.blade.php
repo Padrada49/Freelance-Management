@@ -44,7 +44,14 @@
                 <div class="flex items-start justify-between mb-3">
                     <div class="flex-1">
                         <h4 class="font-semibold text-slate-900">{{ $project->name }}</h4>
-                        <p class="text-xs text-slate-500 mt-1">by {{ $project->creator->name }}</p>
+                        <p class="text-xs text-slate-500 mt-1">
+                            by 
+                            @if($project->freelance)
+                                <span class="font-medium text-blue-600">{{ $project->freelance->name }}</span>
+                            @else
+                                {{ $project->creator->name }}
+                            @endif
+                        </p>
                     </div>
                     <span class="px-2 py-1 bg-slate-100 rounded text-xs font-medium
                         @if($project->status === 'active') bg-green-100 text-green-800

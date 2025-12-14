@@ -84,8 +84,11 @@ class Projects extends Component
 
         // Filter by role
         if ($user->role === 'freelance') {
-            // Freelancers only see their own projects
-            $query->where('created_by', $user->id);
+            // Freelancers see projects they created OR projects assigned to them
+            $query->where(function ($q) use ($user) {
+                $q->where('created_by', $user->id)
+                  ->orWhere('freelance_id', $user->id);
+            });
         } elseif ($user->role === 'customer') {
             // Customers see projects they're associated with
             $query->whereHas('customers', function ($q) use ($user) {
@@ -105,7 +108,7 @@ class Projects extends Component
             $query->where('status', $this->filterStatus);
         }
 
-        $projects = $query->with('creator', 'customers')->paginate(12);
+        $projects = $query->with('creator', 'freelance', 'customers')->paginate(12);
 
         return view('livewire.dashboard.projects', [
             'projects' => $projects,
