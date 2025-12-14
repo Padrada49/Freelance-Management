@@ -72,7 +72,10 @@
                             </div>
                             <div class="flex-1">
                                 <label class="block text-sm font-medium text-gray-700">Profile Picture</label>
-                                <input type="file" wire:model="profile_image" accept="image/*" class="mt-2" />
+                                <div class="mt-2 flex gap-2">
+                                    <input type="file" wire:model="profile_image" accept="image/*" id="profile_image_create" class="hidden" />
+                                    <button type="button" onclick="document.getElementById('profile_image_create').click()" class="flex-1 px-3 py-2 border border-gray-300 rounded text-sm hover:bg-gray-50">Choose file</button>
+                                </div>
                                 @error('profile_image') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
                             </div>
                         </div>
@@ -152,7 +155,10 @@
                             </div>
                             <div class="flex-1">
                                 <label class="block text-sm font-medium text-gray-700">Profile Picture</label>
-                                <input type="file" wire:model="profile_image" accept="image/*" class="mt-2" />
+                                <div class="mt-2 flex gap-2">
+                                    <input type="file" wire:model="profile_image" accept="image/*" id="profile_image_edit" class="hidden" />
+                                    <button type="button" onclick="document.getElementById('profile_image_edit').click()" class="flex-1 px-3 py-2 border border-gray-300 rounded text-sm hover:bg-gray-50">Choose file</button>
+                                </div>
                                 @error('profile_image') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
                             </div>
                         </div>

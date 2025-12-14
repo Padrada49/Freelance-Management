@@ -79,13 +79,14 @@
 
                         <div>
                             <label for="profile_image" class="block text-sm font-medium text-gray-700 mb-2">Profile Picture (Optional)</label>
-                            <div class="relative">
+                            <div class="flex gap-2">
                                 <input
                                     id="profile_image"
                                     type="file"
                                     wire:model.live="profile_image"
                                     accept="image/*"
-                                    class="appearance-none block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent" />
+                                    class="hidden" />
+                                <button type="button" onclick="document.getElementById('profile_image').click()" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg shadow-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent">Choose file</button>
                             </div>
                             @error('profile_image') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
 

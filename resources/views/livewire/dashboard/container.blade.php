@@ -127,6 +127,9 @@
                             </button>
                             <div id="profileMenu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 overflow-hidden">
                                 <div class="p-3 text-sm text-slate-700">Signed in as <strong>{{ auth()->user()->email }}</strong></div>
+                                <div>
+                                    <button type="button" onclick="Livewire.dispatch('openEditProfileModal')" class="w-full text-left px-4 py-2 text-sm hover:bg-slate-50">Edit profile</button>
+                                </div>
                                 <div class="border-t border-gray-200">
                                     <form method="POST" action="{{ route('logout') }}">
                                         @csrf
@@ -196,4 +199,6 @@
         });
     })();
 </script>
+
+@livewire('dashboard.edit-profile')
 </div>
