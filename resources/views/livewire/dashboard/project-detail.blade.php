@@ -113,8 +113,8 @@
                                 </select>
                                 <select wire:model.defer="tasks.0.assigned_to" class="border px-2 py-1.5 rounded-lg text-sm">
                                     <option value="">Unassigned</option>
-                                    @foreach($users as $user)
-                                        <option value="{{ $user->id }}">{{ $user->name }}</option>
+                                    @foreach($taskAssignees as $assignee)
+                                        <option value="{{ $assignee->id }}">{{ $assignee->name }}</option>
                                     @endforeach
                                 </select>
                                 <input type="date" wire:model.defer="tasks.0.due_date" class="border px-2 py-1.5 rounded-lg text-sm" />
@@ -128,58 +128,90 @@
 
                     <!-- Task List -->
                     @forelse($project->tasks as $task)
-                        <div class="p-4 hover:bg-slate-50 transition group">
-                            <div class="flex items-start justify-between gap-4">
-                                <div class="flex-1 min-w-0">
-                                    <h5 class="font-medium text-sm mb-1">{{ $task->title }}</h5>
-                                    @if($task->description)
-                                        <p class="text-xs text-slate-600 mb-2">{{ $task->description }}</p>
-                                    @endif
-                                    <div class="flex flex-wrap items-center gap-2">
-                                        <select wire:change="updateTaskField({{ $task->id }}, 'status', $event.target.value)"
-                                            class="px-2 py-1 rounded text-xs font-medium border-0 cursor-pointer
-                                            @if($task->status === 'completed') bg-green-100 text-green-800
-                                            @elseif($task->status === 'in_progress') bg-blue-100 text-blue-800
-                                            @else bg-slate-100 text-slate-800
-                                            @endif">
-                                            <option value="todo" @selected($task->status === 'todo')>Todo</option>
-                                            <option value="in_progress" @selected($task->status === 'in_progress')>In Progress</option>
-                                            <option value="completed" @selected($task->status === 'completed')>Completed</option>
-                                        </select>
-                                        <span class="px-2 py-1 rounded text-xs font-medium
-                                            @if($task->priority === 'high') bg-red-100 text-red-800
-                                            @elseif($task->priority === 'medium') bg-yellow-100 text-yellow-800
-                                            @else bg-slate-100 text-slate-800
-                                            @endif">
-                                            {{ ucfirst($task->priority) }}
-                                        </span>
-                                        @if($task->assignee)
-                                            <div class="flex items-center gap-1.5 px-2 py-1 bg-slate-100 rounded">
-                                                <img src="{{ $task->assignee->profile_image_url }}" alt="{{ $task->assignee->name }}" class="w-4 h-4 rounded-full" />
-                                                <span class="text-xs">{{ $task->assignee->name }}</span>
-                                            </div>
-                                        @endif
-                                        @if($task->due_date)
-                                            <span class="text-xs text-slate-500">📅 {{ $task->due_date->format('M d') }}</span>
-                                        @endif
-                                    </div>
+                        @if($editingTaskId === $task->id)
+                            <!-- Edit Mode -->
+                            <div class="p-4 bg-blue-50 space-y-3">
+                                <input type="text" wire:model.defer="tasks.{{ $loop->index }}.title" value="{{ $task->title }}" placeholder="Task title..." class="w-full border px-3 py-2 rounded-lg text-sm" />
+                                <textarea wire:model.defer="tasks.{{ $loop->index }}.description" placeholder="Description (optional)..." rows="2" class="w-full border px-3 py-2 rounded-lg text-sm">{{ $task->description }}</textarea>
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                    <select wire:model.defer="tasks.{{ $loop->index }}.status" class="border px-2 py-1.5 rounded-lg text-sm">
+                                        <option value="todo" @selected($task->status === 'todo')>Todo</option>
+                                        <option value="in_progress" @selected($task->status === 'in_progress')>In Progress</option>
+                                        <option value="completed" @selected($task->status === 'completed')>Completed</option>
+                                    </select>
+                                    <select wire:model.defer="tasks.{{ $loop->index }}.priority" class="border px-2 py-1.5 rounded-lg text-sm">
+                                        <option value="low" @selected($task->priority === 'low')>Low</option>
+                                        <option value="medium" @selected($task->priority === 'medium')>Medium</option>
+                                        <option value="high" @selected($task->priority === 'high')>High</option>
+                                    </select>
+                                    <select wire:model.defer="tasks.{{ $loop->index }}.assigned_to" class="border px-2 py-1.5 rounded-lg text-sm">
+                                        <option value="">Unassigned</option>
+                                        @foreach($taskAssignees as $assignee)
+                                            <option value="{{ $assignee->id }}" @selected($task->assigned_to === $assignee->id)>{{ $assignee->name }}</option>
+                                        @endforeach
+                                    </select>
+                                    <input type="date" wire:model.defer="tasks.{{ $loop->index }}.due_date" value="{{ $task->due_date?->format('Y-m-d') }}" class="border px-2 py-1.5 rounded-lg text-sm" />
                                 </div>
-                                @if(auth()->user()->role === 'admin' || $project->created_by === auth()->id() || $project->freelance_id === auth()->id())
-                                    <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition">
-                                        <button wire:click="editTask({{ $task->id }})" class="p-2 text-blue-600 hover:bg-blue-50 rounded">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                            </svg>
-                                        </button>
-                                        <button wire:click="confirmDeleteTask({{ $task->id }})" class="p-2 text-red-600 hover:bg-red-50 rounded">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                            </svg>
-                                        </button>
-                                    </div>
-                                @endif
+                                <div class="flex gap-2">
+                                    <button wire:click="saveTask({{ $task->id }})" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700">Save</button>
+                                    <button wire:click="cancelEdit" class="px-4 py-2 border rounded-lg text-sm hover:bg-slate-50">Cancel</button>
+                                </div>
                             </div>
-                        </div>
+                        @else
+                            <!-- View Mode -->
+                            <div class="p-4 hover:bg-slate-50 transition group">
+                                <div class="flex items-start justify-between gap-4">
+                                    <div class="flex-1 min-w-0">
+                                        <h5 class="font-medium text-sm mb-1">{{ $task->title }}</h5>
+                                        @if($task->description)
+                                            <p class="text-xs text-slate-600 mb-2">{{ $task->description }}</p>
+                                        @endif
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <select wire:change="updateTaskField({{ $task->id }}, 'status', $event.target.value)"
+                                                class="px-2 py-1 rounded text-xs font-medium border-0 cursor-pointer
+                                                @if($task->status === 'completed') bg-green-100 text-green-800
+                                                @elseif($task->status === 'in_progress') bg-blue-100 text-blue-800
+                                                @else bg-slate-100 text-slate-800
+                                                @endif">
+                                                <option value="todo" @selected($task->status === 'todo')>Todo</option>
+                                                <option value="in_progress" @selected($task->status === 'in_progress')>In Progress</option>
+                                                <option value="completed" @selected($task->status === 'completed')>Completed</option>
+                                            </select>
+                                            <span class="px-2 py-1 rounded text-xs font-medium
+                                                @if($task->priority === 'high') bg-red-100 text-red-800
+                                                @elseif($task->priority === 'medium') bg-yellow-100 text-yellow-800
+                                                @else bg-slate-100 text-slate-800
+                                                @endif">
+                                                {{ ucfirst($task->priority) }}
+                                            </span>
+                                            @if($task->assignee)
+                                                <div class="flex items-center gap-1.5 px-2 py-1 bg-slate-100 rounded">
+                                                    <img src="{{ $task->assignee->profile_image_url }}" alt="{{ $task->assignee->name }}" class="w-4 h-4 rounded-full" />
+                                                    <span class="text-xs">{{ $task->assignee->name }}</span>
+                                                </div>
+                                            @endif
+                                            @if($task->due_date)
+                                                <span class="text-xs text-slate-500">📅 {{ $task->due_date->format('M d') }}</span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                    @if(auth()->user()->role === 'admin' || $project->created_by === auth()->id() || $project->freelance_id === auth()->id())
+                                        <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition">
+                                            <button wire:click="editTask({{ $task->id }})" class="p-2 text-blue-600 hover:bg-blue-50 rounded">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                </svg>
+                                            </button>
+                                            <button wire:click="confirmDeleteTask({{ $task->id }})" class="p-2 text-red-600 hover:bg-red-50 rounded">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                        @endif
                     @empty
                         @if(!$addingNewTask)
                             <div class="p-12 text-center text-slate-500">
@@ -223,6 +255,33 @@
                     @endif
                 </div>
             @endif
+
+            <!-- Project Managers -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h4 class="font-semibold text-sm">Project Managers</h4>
+                    @if(auth()->user()->role === 'admin' || $project->created_by === auth()->id() || $project->freelance_id === auth()->id())
+                        <button wire:click="editManagers" class="text-xs text-blue-600 hover:text-blue-800">
+                            {{ $project->managers->count() > 0 ? 'Edit' : 'Add' }}
+                        </button>
+                    @endif
+                </div>
+                @if($project->managers->count() > 0)
+                    <div class="space-y-2">
+                        @foreach($project->managers as $manager)
+                            <div class="flex items-center gap-2">
+                                <img src="{{ $manager->profile_image_url }}" alt="{{ $manager->name }}" class="w-8 h-8 rounded-full" />
+                                <div class="min-w-0">
+                                    <p class="text-sm font-medium truncate">{{ $manager->name }}</p>
+                                    <p class="text-xs text-slate-500 truncate">{{ $manager->email }} • {{ ucfirst($manager->role) }}</p>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @else
+                    <p class="text-sm text-slate-400">No managers assigned</p>
+                @endif
+            </div>
 
             <!-- Customers -->
             <div class="bg-white rounded-lg shadow p-6">
@@ -384,6 +443,47 @@
                         <div class="flex gap-3 pt-4 border-t">
                             <button type="submit" class="flex-1 px-4 py-2 bg-black text-white rounded">Save Changes</button>
                             <button type="button" wire:click="$set('showEditCustomersModal', false)" class="flex-1 px-4 py-2 border rounded">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- Edit Managers Modal -->
+    @if($showEditManagersModal)
+        <div class="fixed inset-0 z-50 flex items-center justify-center">
+            <div class="absolute inset-0 bg-black opacity-40" wire:click="$set('showEditManagersModal', false)"></div>
+            <div class="relative bg-white rounded-lg shadow-lg w-full max-w-2xl mx-4 overflow-hidden">
+                <div class="flex items-center justify-between p-4 border-b">
+                    <h3 class="text-lg font-semibold">Manage Project Managers</h3>
+                    <button wire:click="$set('showEditManagersModal', false)" class="text-slate-600 hover:text-slate-800">&times;</button>
+                </div>
+
+                <div class="p-6 max-h-96 overflow-y-auto">
+                    <form wire:submit.prevent="updateManagers" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-3">Select Managers (Freelances Only)</label>
+                            <div class="space-y-2 border rounded p-3 max-h-64 overflow-y-auto">
+                                @forelse($availableManagers as $manager)
+                                    <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-2 rounded">
+                                        <input type="checkbox" wire:model.defer="selectedManagers" value="{{ $manager->id }}" class="rounded" />
+                                        <img src="{{ $manager->profile_image_url }}" alt="{{ $manager->name }}" class="w-8 h-8 rounded-full" />
+                                        <div class="flex-1">
+                                            <p class="text-sm font-medium">{{ $manager->name }}</p>
+                                            <p class="text-xs text-slate-500">{{ $manager->email }} • {{ ucfirst($manager->role) }}</p>
+                                        </div>
+                                    </label>
+                                @empty
+                                    <p class="text-sm text-slate-500 text-center py-4">No managers available</p>
+                                @endforelse
+                            </div>
+                            @error('selectedManagers') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
+                        </div>
+
+                        <div class="flex gap-3 pt-4 border-t">
+                            <button type="submit" class="flex-1 px-4 py-2 bg-black text-white rounded">Save Changes</button>
+                            <button type="button" wire:click="$set('showEditManagersModal', false)" class="flex-1 px-4 py-2 border rounded">Cancel</button>
                         </div>
                     </form>
                 </div>

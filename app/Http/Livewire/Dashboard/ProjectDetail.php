@@ -22,6 +22,7 @@ class ProjectDetail extends Component
     public $showEditCustomersModal = false;
     public $showUploadFilesModal = false;
     public $showEditFreelanceModal = false;
+    public $showEditManagersModal = false;
     public $confirmingDeleteId = null;
     public $confirmingDeleteTaskId = null;
     public $confirmingDeleteFileId = null;
@@ -32,6 +33,7 @@ class ProjectDetail extends Component
     public $status;
     public $selectedCustomers = [];
     public $selectedFreelance = null;
+    public $selectedManagers = [];
 
     // File uploads
     public $uploadedFiles = [];
@@ -54,7 +56,7 @@ class ProjectDetail extends Component
 
     public function loadProject()
     {
-        $query = Project::with(['creator', 'freelance', 'customers', 'tasks.assignee', 'files']);
+        $query = Project::with(['creator', 'freelance', 'customers', 'managers', 'tasks.assignee', 'files']);
 
         $user = Auth::user();
 
@@ -214,6 +216,44 @@ class ProjectDetail extends Component
         }
     }
 
+    public function editManagers()
+    {
+        // Check authorization - admin, creator, or assigned freelance
+        $user = Auth::user();
+        if ($user->role !== 'admin' && $this->project->created_by !== $user->id && $this->project->freelance_id !== $user->id) {
+            $this->dispatch('notify', message: 'You do not have permission to manage project managers.', type: 'warning');
+            return;
+        }
+
+        $this->selectedManagers = $this->project->managers->pluck('id')->toArray();
+        $this->showEditManagersModal = true;
+    }
+
+    public function updateManagers()
+    {
+        try {
+            $this->validate([
+                'selectedManagers' => 'array',
+            ]);
+
+            // Check authorization - admin, creator, or assigned freelance
+            $user = Auth::user();
+            if ($user->role !== 'admin' && $this->project->created_by !== $user->id && $this->project->freelance_id !== $user->id) {
+                $this->dispatch('notify', message: 'You do not have permission to manage project managers.', type: 'warning');
+                return;
+            }
+
+            // Update managers
+            $this->project->managers()->sync($this->selectedManagers);
+
+            $this->dispatch('notify', message: 'Project managers updated successfully!', type: 'success');
+            $this->showEditManagersModal = false;
+            $this->loadProject();
+        } catch (\Exception $e) {
+            $this->dispatch('notify', message: 'Failed to update managers. ' . $e->getMessage(), type: 'error');
+        }
+    }
+
     public function confirmDelete()
     {
         $this->confirmingDeleteId = $this->project->id;
@@ -300,11 +340,40 @@ class ProjectDetail extends Component
     public function saveTask($taskId)
     {
         try {
+            // Find the task in the tasks array
+            $taskIndex = null;
+            foreach ($this->project->tasks as $index => $task) {
+                if ($task->id == $taskId) {
+                    $taskIndex = $index;
+                    break;
+                }
+            }
+
+            if ($taskIndex === null || !isset($this->tasks[$taskIndex])) {
+                $this->dispatch('notify', message: 'Task not found.', type: 'error');
+                return;
+            }
+
+            // Validate task data
+            $taskData = $this->tasks[$taskIndex];
+
+            // Update the task
+            $task = Task::findOrFail($taskId);
+            $task->update([
+                'title' => $taskData['title'] ?? $task->title,
+                'description' => $taskData['description'] ?? $task->description,
+                'status' => $taskData['status'] ?? $task->status,
+                'priority' => $taskData['priority'] ?? $task->priority,
+                'assigned_to' => $taskData['assigned_to'] ?? $task->assigned_to,
+                'due_date' => $taskData['due_date'] ?? $task->due_date,
+            ]);
+
             $this->editingTaskId = null;
+            $this->tasks = [];
             $this->dispatch('notify', message: 'Task updated successfully!', type: 'success');
             $this->loadProject();
         } catch (\Exception $e) {
-            $this->dispatch('notify', message: 'Failed to save task.', type: 'error');
+            $this->dispatch('notify', message: 'Failed to save task. ' . $e->getMessage(), type: 'error');
         }
     }
 
@@ -479,10 +548,18 @@ class ProjectDetail extends Component
 
     public function render()
     {
+        // Get available managers (freelances only, excluding admin and customers)
+        $availableManagers = User::where('role', 'freelance')->get();
+
+        // Get task assignees from project managers only
+        $taskAssignees = $this->project->managers;
+
         return view('livewire.dashboard.project-detail', [
             'customers' => User::where('role', 'customer')->get(),
             'users' => User::whereIn('role', ['admin', 'freelance', 'customer'])->get(),
             'freelances' => User::where('role', 'freelance')->get(),
+            'availableManagers' => $availableManagers,
+            'taskAssignees' => $taskAssignees,
         ]);
     }
 }

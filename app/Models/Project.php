@@ -37,6 +37,12 @@ class Project extends Model
         return $this->belongsToMany(User::class, 'project_customers', 'project_id', 'customer_id');
     }
 
+    public function managers()
+    {
+        return $this->belongsToMany(User::class, 'project_managers', 'project_id', 'user_id')
+            ->withTimestamps();
+    }
+
     public function tasks()
     {
         return $this->hasMany(Task::class);
