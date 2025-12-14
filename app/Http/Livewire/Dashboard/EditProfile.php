@@ -43,42 +43,46 @@ class EditProfile extends Component
 
     public function updateProfile()
     {
-        $this->validate();
+        try {
+            $this->validate();
 
-        $user = auth()->user();
-        $user->name = $this->name;
-        $user->email = $this->email;
+            $user = auth()->user();
+            $user->name = $this->name;
+            $user->email = $this->email;
 
-        if ($this->password) {
-            $user->password = Hash::make($this->password);
+            if ($this->password) {
+                $user->password = Hash::make($this->password);
+            }
+
+            if ($this->profile_image) {
+                $filename = 'profile_' . $user->id . '_' . time() . '.' . $this->profile_image->extension();
+                $path = $this->profile_image->storeAs('profiles', $filename, 'public');
+
+                File::create([
+                    'module_name' => 'user',
+                    'module_id' => $user->id,
+                    'file_name' => $this->profile_image->getClientOriginalName(),
+                    'file_path' => $path,
+                    'file_type' => 'image',
+                    'mime_type' => $this->profile_image->getMimeType(),
+                    'file_size' => $this->profile_image->getSize(),
+                ]);
+
+                $user->profile_image_path = $path;
+            }
+
+            $user->save();
+
+            // Refresh the user in auth cache
+            auth()->setUser($user);
+
+            $this->dispatch('notify', message: 'Profile updated successfully!', type: 'success');
+            $this->resetForm();
+            $this->showModal = false;
+            $this->dispatch('profileUpdated');
+        } catch (\Exception $e) {
+            $this->dispatch('notify', message: 'Failed to update profile. ' . $e->getMessage(), type: 'error');
         }
-
-        if ($this->profile_image) {
-            $filename = 'profile_' . $user->id . '_' . time() . '.' . $this->profile_image->extension();
-            $path = $this->profile_image->storeAs('profiles', $filename, 'public');
-
-            File::create([
-                'module_name' => 'user',
-                'module_id' => $user->id,
-                'file_name' => $this->profile_image->getClientOriginalName(),
-                'file_path' => $path,
-                'file_type' => 'image',
-                'mime_type' => $this->profile_image->getMimeType(),
-                'file_size' => $this->profile_image->getSize(),
-            ]);
-
-            $user->profile_image_path = $path;
-        }
-
-        $user->save();
-
-        // Refresh the user in auth cache
-        auth()->setUser($user);
-
-        session()->flash('success', 'Profile updated successfully.');
-        $this->resetForm();
-        $this->showModal = false;
-        $this->dispatch('profileUpdated');
     }
 
     public function resetForm()

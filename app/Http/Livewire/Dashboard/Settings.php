@@ -24,33 +24,37 @@ class Settings extends Component
 
     public function uploadProfileImage()
     {
-        $this->validate([
-            'profileImage' => 'required|image|max:2048',
-        ]);
+        try {
+            $this->validate([
+                'profileImage' => 'required|image|max:2048',
+            ]);
 
-        $user = auth()->user();
+            $user = auth()->user();
 
-        // Store the image
-        $path = $this->profileImage->store('profiles', 'public');
+            // Store the image
+            $path = $this->profileImage->store('profiles', 'public');
 
-        // Save to database
-        File::create([
-            'module_name' => 'user',
-            'module_id' => $user->id,
-            'file_name' => $this->profileImage->getClientOriginalName(),
-            'file_path' => $path,
-            'file_type' => 'image',
-            'mime_type' => $this->profileImage->getMimeType(),
-            'file_size' => $this->profileImage->getSize(),
-        ]);
+            // Save to database
+            File::create([
+                'module_name' => 'user',
+                'module_id' => $user->id,
+                'file_name' => $this->profileImage->getClientOriginalName(),
+                'file_path' => $path,
+                'file_type' => 'image',
+                'mime_type' => $this->profileImage->getMimeType(),
+                'file_size' => $this->profileImage->getSize(),
+            ]);
 
-        // Update user profile_image_path
-        $user->update(['profile_image_path' => $path]);
+            // Update user profile_image_path
+            $user->update(['profile_image_path' => $path]);
 
-        $this->previewUrl = asset('storage/' . $path);
-        $this->profileImage = null;
+            $this->previewUrl = asset('storage/' . $path);
+            $this->profileImage = null;
 
-        session()->flash('success', 'Profile image updated successfully!');
+            $this->dispatch('notify', message: 'Profile image updated successfully!', type: 'success');
+        } catch (\Exception $e) {
+            $this->dispatch('notify', message: 'Failed to upload image. ' . $e->getMessage(), type: 'error');
+        }
     }
 
     public function render()

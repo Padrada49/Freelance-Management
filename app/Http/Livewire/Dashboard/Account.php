@@ -64,36 +64,40 @@ class Account extends Component
 
     public function createUser()
     {
-        $this->validate();
+        try {
+            $this->validate();
 
-        $user = User::create([
-            'name' => $this->name,
-            'email' => $this->email,
-            'role' => $this->role,
-            'password' => Hash::make($this->password),
-        ]);
-
-        if ($this->profile_image) {
-            $filename = 'profile_' . $user->id . '_' . time() . '.' . $this->profile_image->extension();
-            $path = $this->profile_image->storeAs('profiles', $filename, 'public');
-
-            File::create([
-                'module_name' => 'user',
-                'module_id' => $user->id,
-                'file_name' => $this->profile_image->getClientOriginalName(),
-                'file_path' => $path,
-                'file_type' => 'image',
-                'mime_type' => $this->profile_image->getMimeType(),
-                'file_size' => $this->profile_image->getSize(),
+            $user = User::create([
+                'name' => $this->name,
+                'email' => $this->email,
+                'role' => $this->role,
+                'password' => Hash::make($this->password),
             ]);
 
-            $user->profile_image_path = $path;
-            $user->save();
-        }
+            if ($this->profile_image) {
+                $filename = 'profile_' . $user->id . '_' . time() . '.' . $this->profile_image->extension();
+                $path = $this->profile_image->storeAs('profiles', $filename, 'public');
 
-        session()->flash('success', 'User created successfully.');
-        $this->resetForm();
-        $this->showCreateModal = false;
+                File::create([
+                    'module_name' => 'user',
+                    'module_id' => $user->id,
+                    'file_name' => $this->profile_image->getClientOriginalName(),
+                    'file_path' => $path,
+                    'file_type' => 'image',
+                    'mime_type' => $this->profile_image->getMimeType(),
+                    'file_size' => $this->profile_image->getSize(),
+                ]);
+
+                $user->profile_image_path = $path;
+                $user->save();
+            }
+
+            $this->dispatch('notify', message: 'User created successfully!', type: 'success');
+            $this->resetForm();
+            $this->showCreateModal = false;
+        } catch (\Exception $e) {
+            $this->dispatch('notify', message: 'Failed to create user. ' . $e->getMessage(), type: 'error');
+        }
     }
 
     public function edit($id)
@@ -111,39 +115,43 @@ class Account extends Component
 
     public function updateUser()
     {
-        $this->validate();
+        try {
+            $this->validate();
 
-        $user = User::findOrFail($this->editingUserId);
-        $user->name = $this->name;
-        $user->email = $this->email;
-        $user->role = $this->role;
+            $user = User::findOrFail($this->editingUserId);
+            $user->name = $this->name;
+            $user->email = $this->email;
+            $user->role = $this->role;
 
-        if (!empty($this->password)) {
-            $user->password = Hash::make($this->password);
+            if (!empty($this->password)) {
+                $user->password = Hash::make($this->password);
+            }
+
+            if ($this->profile_image) {
+                $filename = 'profile_' . $user->id . '_' . time() . '.' . $this->profile_image->extension();
+                $path = $this->profile_image->storeAs('profiles', $filename, 'public');
+
+                File::create([
+                    'module_name' => 'user',
+                    'module_id' => $user->id,
+                    'file_name' => $this->profile_image->getClientOriginalName(),
+                    'file_path' => $path,
+                    'file_type' => 'image',
+                    'mime_type' => $this->profile_image->getMimeType(),
+                    'file_size' => $this->profile_image->getSize(),
+                ]);
+
+                $user->profile_image_path = $path;
+            }
+
+            $user->save();
+
+            $this->dispatch('notify', message: 'User updated successfully!', type: 'success');
+            $this->resetForm();
+            $this->showEditModal = false;
+        } catch (\Exception $e) {
+            $this->dispatch('notify', message: 'Failed to update user. ' . $e->getMessage(), type: 'error');
         }
-
-        if ($this->profile_image) {
-            $filename = 'profile_' . $user->id . '_' . time() . '.' . $this->profile_image->extension();
-            $path = $this->profile_image->storeAs('profiles', $filename, 'public');
-
-            File::create([
-                'module_name' => 'user',
-                'module_id' => $user->id,
-                'file_name' => $this->profile_image->getClientOriginalName(),
-                'file_path' => $path,
-                'file_type' => 'image',
-                'mime_type' => $this->profile_image->getMimeType(),
-                'file_size' => $this->profile_image->getSize(),
-            ]);
-
-            $user->profile_image_path = $path;
-        }
-
-        $user->save();
-
-        session()->flash('success', 'User updated successfully.');
-        $this->resetForm();
-        $this->showEditModal = false;
     }
 
     public function confirmDelete($id)
@@ -153,18 +161,23 @@ class Account extends Component
 
     public function deleteUser($id)
     {
-        $user = User::findOrFail($id);
+        try {
+            $user = User::findOrFail($id);
 
-        // Prevent deleting self
-        if ($user->id === Auth::id()) {
-            session()->flash('error', 'You cannot delete your own account.');
+            // Prevent deleting self
+            if ($user->id === Auth::id()) {
+                $this->dispatch('notify', message: 'You cannot delete your own account.', type: 'warning');
+                $this->confirmingDeleteId = null;
+                return;
+            }
+
+            $user->delete();
+            $this->dispatch('notify', message: 'User deleted successfully!', type: 'success');
             $this->confirmingDeleteId = null;
-            return;
+        } catch (\Exception $e) {
+            $this->dispatch('notify', message: 'Failed to delete user. ' . $e->getMessage(), type: 'error');
+            $this->confirmingDeleteId = null;
         }
-
-        $user->delete();
-        session()->flash('success', 'User deleted successfully.');
-        $this->confirmingDeleteId = null;
     }
 
     public function clearFilters()

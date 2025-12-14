@@ -31,38 +31,43 @@ class Register extends Component
 
     public function register()
     {
-        $this->validate();
+        try {
+            $this->validate();
 
-        $user = User::create([
-            'name' => $this->name,
-            'email' => $this->email,
-            'password' => Hash::make($this->password),
-            'role' => $this->role,
-        ]);
-
-        // Handle profile image upload
-        if ($this->profile_image) {
-            $filename = 'profile_' . $user->id . '_' . time() . '.' . $this->profile_image->extension();
-            $path = $this->profile_image->storeAs('profiles', $filename, 'public');
-
-            // Save to files table
-            File::create([
-                'module_name' => 'user',
-                'module_id' => $user->id,
-                'file_name' => $this->profile_image->getClientOriginalName(),
-                'file_path' => $path,
-                'file_type' => 'image',
-                'mime_type' => $this->profile_image->getMimeType(),
-                'file_size' => $this->profile_image->getSize(),
+            $user = User::create([
+                'name' => $this->name,
+                'email' => $this->email,
+                'password' => Hash::make($this->password),
+                'role' => $this->role,
             ]);
 
-            // Update user profile_image_path
-            $user->update(['profile_image_path' => $path]);
-        }
+            // Handle profile image upload
+            if ($this->profile_image) {
+                $filename = 'profile_' . $user->id . '_' . time() . '.' . $this->profile_image->extension();
+                $path = $this->profile_image->storeAs('profiles', $filename, 'public');
 
-        Auth::attempt(['email' => $this->email, 'password' => $this->password]);
-        session()->regenerate();
-        return redirect()->intended('/dashboard');
+                // Save to files table
+                File::create([
+                    'module_name' => 'user',
+                    'module_id' => $user->id,
+                    'file_name' => $this->profile_image->getClientOriginalName(),
+                    'file_path' => $path,
+                    'file_type' => 'image',
+                    'mime_type' => $this->profile_image->getMimeType(),
+                    'file_size' => $this->profile_image->getSize(),
+                ]);
+
+                // Update user profile_image_path
+                $user->update(['profile_image_path' => $path]);
+            }
+
+            Auth::attempt(['email' => $this->email, 'password' => $this->password]);
+            session()->regenerate();
+            $this->dispatch('notify', message: 'Account created successfully!', type: 'success');
+            return redirect()->intended('/dashboard');
+        } catch (\Exception $e) {
+            $this->dispatch('notify', message: 'Registration failed. ' . $e->getMessage(), type: 'error');
+        }
     }
 
     public function render()

@@ -8,10 +8,6 @@
                     <button wire:click="$set('showModal', false)" class="text-slate-600 hover:text-slate-800">&times;</button>
                 </div>
                 <div class="p-4">
-                    @if (session('success'))
-                        <div class="mb-4 p-3 bg-green-50 border border-green-100 text-green-800 rounded">{{ session('success') }}</div>
-                    @endif
-
                     <form wire:submit.prevent="updateProfile" class="space-y-4">
                         <div class="flex items-center gap-4">
                             <div>
