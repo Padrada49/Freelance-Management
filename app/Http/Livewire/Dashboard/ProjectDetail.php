@@ -302,6 +302,7 @@ class ProjectDetail extends Component
                 'status' => $task['status'] ?? 'todo',
                 'priority' => $task['priority'] ?? 'medium',
                 'assigned_to' => $task['assigned_to'] ?? null,
+                'created_by' => auth()->id(),
                 'due_date' => $task['due_date'] ?? null,
             ]);
 
