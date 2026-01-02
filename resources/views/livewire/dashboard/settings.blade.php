@@ -57,4 +57,45 @@
             </button>
         </div>
     </div>
+
+    @if(auth()->user()->role === 'admin')
+        <!-- Pricing Settings (Lifetime) -->
+        <div class="mt-6 bg-white p-6 rounded-lg shadow">
+            <h4 class="text-xl font-semibold mb-6">Lifetime Pricing</h4>
+            <p class="text-sm text-slate-600 mb-6">Set one-time payment prices for each role (Lifetime access)</p>
+
+            <form wire:submit.prevent="savePricing">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Freelance Pricing -->
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Freelance - Lifetime (THB)</label>
+                        <input type="number" wire:model="freelance_price" step="0.01" min="0"
+                            class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                            placeholder="2990" />
+                        @error('freelance_price')
+                            <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <!-- Customer Pricing -->
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Customer - Lifetime (THB)</label>
+                        <input type="number" wire:model="customer_price" step="0.01" min="0"
+                            class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                            placeholder="1990" />
+                        @error('customer_price')
+                            <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+                </div>
+
+                <div class="mt-6 flex justify-end">
+                    <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                        <span wire:loading.remove wire:target="savePricing">Save Pricing</span>
+                        <span wire:loading wire:target="savePricing">Saving...</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    @endif
 </div>

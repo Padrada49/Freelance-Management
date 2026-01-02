@@ -98,6 +98,7 @@
                         <td class="px-4 py-3"><span class="px-2 py-1 bg-slate-100 rounded text-xs font-medium">{{ ucfirst($u->role) }}</span></td>
                         <td class="px-4 py-3">{{ $u->created_at->format('Y-m-d') }}</td>
                         <td class="px-4 py-3 space-x-2">
+                            <button wire:click="viewSubscription({{ $u->id }})" class="px-2 py-1 border rounded text-sm hover:bg-blue-50 text-blue-600">Subscription</button>
                             <button wire:click="edit({{ $u->id }})" class="px-2 py-1 border rounded text-sm hover:bg-slate-50">Edit</button>
                             <button wire:click="confirmDelete({{ $u->id }})" class="px-2 py-1 border rounded text-sm text-red-600 hover:bg-red-50">Delete</button>
                         </td>
@@ -287,6 +288,114 @@
                     <div class="mt-3 flex gap-2">
                         <button wire:click="deleteUser({{ $confirmingDeleteId }})" class="px-3 py-2 bg-red-600 text-white rounded">Yes, delete</button>
                         <button wire:click="$set('confirmingDeleteId', null)" class="px-3 py-2 border rounded">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- Subscription Modal -->
+    @if($showSubscriptionModal && $viewingUser)
+        <div class="fixed inset-0 z-50 flex items-center justify-center">
+            <div class="absolute inset-0 bg-black opacity-40" wire:click="closeSubscriptionModal"></div>
+            <div class="relative bg-white rounded-lg shadow-lg w-full max-w-4xl mx-4 overflow-hidden max-h-[90vh] overflow-y-auto">
+                <div class="flex items-center justify-between p-4 border-b sticky top-0 bg-white">
+                    <h3 class="text-lg font-semibold">Subscription Details - {{ $viewingUser->name }}</h3>
+                    <button wire:click="closeSubscriptionModal" class="text-slate-600 hover:text-slate-800">&times;</button>
+                </div>
+                <div class="p-6">
+                    <!-- User Info -->
+                    <div class="mb-6 bg-slate-50 rounded-lg p-4 border border-slate-200">
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <span class="text-slate-600">User:</span>
+                                <span class="font-medium ml-2">{{ $viewingUser->name }}</span>
+                            </div>
+                            <div>
+                                <span class="text-slate-600">Email:</span>
+                                <span class="font-medium ml-2">{{ $viewingUser->email }}</span>
+                            </div>
+                            <div>
+                                <span class="text-slate-600">Role:</span>
+                                <span class="font-medium ml-2 px-2 py-1 rounded text-xs {{ $viewingUser->role === 'freelance' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700' }}">
+                                    {{ ucfirst($viewingUser->role) }}
+                                </span>
+                            </div>
+                            <div>
+                                <span class="text-slate-600">Account Status:</span>
+                                <span class="font-medium ml-2 px-2 py-1 rounded text-xs {{ $viewingUser->is_approved ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700' }}">
+                                    {{ $viewingUser->is_approved ? 'Approved' : 'Pending' }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Payment History -->
+                    <div>
+                        <h4 class="font-semibold text-lg mb-4">Payment History</h4>
+
+                        @if($viewingUser->paymentProofs->isEmpty())
+                            <div class="text-center py-8 text-slate-500 bg-slate-50 rounded border border-slate-200">
+                                <p>No payment records found</p>
+                            </div>
+                        @else
+                            <div class="space-y-4">
+                                @foreach($viewingUser->paymentProofs as $proof)
+                                    <div class="border border-slate-200 rounded-lg p-4 {{ $proof->status === 'approved' ? 'bg-green-50' : ($proof->status === 'rejected' ? 'bg-red-50' : 'bg-yellow-50') }}">
+                                        <div class="flex justify-between items-start mb-3">
+                                            <div>
+                                                <h5 class="font-semibold text-lg">{{ ucfirst($proof->subscription_type) }} Subscription</h5>
+                                                <p class="text-2xl font-bold text-green-600">฿{{ number_format($proof->amount, 2) }}</p>
+                                            </div>
+                                            <span class="px-3 py-1 rounded-full text-sm font-semibold {{ $proof->status === 'approved' ? 'bg-green-600 text-white' : ($proof->status === 'rejected' ? 'bg-red-600 text-white' : 'bg-yellow-600 text-white') }}">
+                                                {{ ucfirst($proof->status) }}
+                                            </span>
+                                        </div>
+
+                                        <div class="grid grid-cols-2 gap-3 text-sm mb-3">
+                                            <div>
+                                                <span class="text-slate-600">Submitted:</span>
+                                                <span class="font-medium ml-2">{{ $proof->created_at->format('M d, Y H:i') }}</span>
+                                            </div>
+                                            @if($proof->approved_at)
+                                                <div>
+                                                    <span class="text-slate-600">{{ ucfirst($proof->status) }} At:</span>
+                                                    <span class="font-medium ml-2">{{ $proof->approved_at->format('M d, Y H:i') }}</span>
+                                                </div>
+                                            @endif
+                                            @if($proof->approver)
+                                                <div>
+                                                    <span class="text-slate-600">{{ ucfirst($proof->status) }} By:</span>
+                                                    <span class="font-medium ml-2">{{ $proof->approver->name }}</span>
+                                                </div>
+                                            @endif
+                                        </div>
+
+                                        @if($proof->admin_note)
+                                            <div class="mb-3">
+                                                <span class="text-slate-600 text-sm font-semibold">Admin Note:</span>
+                                                <p class="mt-1 text-sm bg-white border border-slate-300 rounded p-2">{{ $proof->admin_note }}</p>
+                                            </div>
+                                        @endif
+
+                                        @if($proof->proof_file)
+                                            <div>
+                                                <span class="text-slate-600 text-sm font-semibold">Payment Slip:</span>
+                                                <div class="mt-2 border border-slate-300 rounded-lg p-2 bg-white">
+                                                    <img src="{{ $proof->proof_file_url }}" alt="Payment Slip" class="max-w-full h-auto rounded shadow">
+                                                </div>
+                                            </div>
+                                        @endif
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
+
+                    <div class="mt-6 flex justify-end">
+                        <button wire:click="closeSubscriptionModal" class="px-6 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 font-medium">
+                            Close
+                        </button>
                     </div>
                 </div>
             </div>

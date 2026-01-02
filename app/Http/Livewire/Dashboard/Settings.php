@@ -5,6 +5,7 @@ namespace App\Http\Livewire\Dashboard;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use App\Models\File;
+use App\Models\Setting;
 use Illuminate\Support\Facades\Storage;
 
 class Settings extends Component
@@ -14,12 +15,35 @@ class Settings extends Component
     public $profileImage;
     public $previewUrl;
 
+    // Pricing settings - Lifetime prices per role
+    public $freelance_price;
+    public $customer_price;
+
     public function mount()
     {
         $user = auth()->user();
         if ($user->profile_image_path) {
             $this->previewUrl = $user->profile_image_url;
         }
+
+        // Load pricing settings for admin
+        if ($user->role === 'admin') {
+            $this->freelance_price = Setting::get('freelance_price', 2990);
+            $this->customer_price = Setting::get('customer_price', 1990);
+        }
+    }
+
+    public function savePricing()
+    {
+        $this->validate([
+            'freelance_price' => 'required|numeric|min:0',
+            'customer_price' => 'required|numeric|min:0',
+        ]);
+
+        Setting::set('freelance_price', $this->freelance_price);
+        Setting::set('customer_price', $this->customer_price);
+
+        $this->dispatch('notify', message: 'Pricing settings saved successfully!', type: 'success');
     }
 
     public function uploadProfileImage()

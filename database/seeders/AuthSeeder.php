@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\User;
+use App\Models\Setting;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -44,6 +45,17 @@ class AuthSeeder extends Seeder
                 'password' => Hash::make('password123'),
                 'role' => 'customer',
             ]
+        );
+
+        // Settings for pricing
+        Setting::updateOrCreate(
+            ['key' => 'freelance_price'],
+            ['value' => '2990']
+        );
+
+        Setting::updateOrCreate(
+            ['key' => 'customer_price'],
+            ['value' => '1990']
         );
     }
 }

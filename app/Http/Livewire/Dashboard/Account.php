@@ -17,6 +17,8 @@ class Account extends Component
     public $showCreateModal = false;
     public $showEditModal = false;
     public $confirmingDeleteId = null;
+    public $showSubscriptionModal = false;
+    public $viewingUserId = null;
 
     // Filter properties
     public $search = '';
@@ -72,6 +74,9 @@ class Account extends Component
                 'email' => $this->email,
                 'role' => $this->role,
                 'password' => Hash::make($this->password),
+                'is_approved' => true, // Auto-approve admin-created users
+                'approved_at' => now(),
+                'approved_by' => auth()->id(),
             ]);
 
             if ($this->profile_image) {
@@ -211,9 +216,24 @@ class Account extends Component
         $this->profile_image = null;
     }
 
+    public function viewSubscription($userId)
+    {
+        $this->viewingUserId = $userId;
+        $this->showSubscriptionModal = true;
+    }
+
+    public function closeSubscriptionModal()
+    {
+        $this->showSubscriptionModal = false;
+        $this->viewingUserId = null;
+    }
+
     public function render()
     {
         $query = User::query();
+
+        // Only show approved users
+        $query->where('is_approved', true);
 
         // Search filter
         if ($this->search) {
@@ -236,8 +256,17 @@ class Account extends Component
         // Sorting
         $query->orderBy($this->sortBy, $this->sortDirection);
 
+        // Get viewing user details if modal is open
+        $viewingUser = null;
+        if ($this->showSubscriptionModal && $this->viewingUserId) {
+            $viewingUser = User::with(['paymentProofs' => function($q) {
+                $q->latest();
+            }])->find($this->viewingUserId);
+        }
+
         return view('livewire.dashboard.account', [
             'users' => $query->paginate(10),
+            'viewingUser' => $viewingUser,
         ]);
     }
 }

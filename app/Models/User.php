@@ -23,6 +23,9 @@ class User extends Authenticatable
         'password',
         'role',
         'profile_image_path',
+        'is_approved',
+        'approved_at',
+        'approved_by',
     ];
 
     /**
@@ -45,7 +48,19 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'approved_at' => 'datetime',
+            'is_approved' => 'boolean',
         ];
+    }
+
+    public function paymentProofs()
+    {
+        return $this->hasMany(PaymentProof::class);
+    }
+
+    public function approver()
+    {
+        return $this->belongsTo(User::class, 'approved_by');
     }
 
     public function files()

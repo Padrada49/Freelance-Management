@@ -23,14 +23,14 @@ Route::get('/register', Register::class)
 
 Route::get('/dashboard', function () {
     return view('dashboard');
-})->middleware('auth')->name('dashboard');
+})->middleware(['auth', 'approved'])->name('dashboard');
 
 Route::view('/dashboard/projects', 'dashboard')
-    ->middleware('auth')
+    ->middleware(['auth', 'approved'])
     ->name('dashboard.projects');
 
 Route::get('/dashboard/projects/{id}', ProjectDetail::class)
-    ->middleware('auth')
+    ->middleware(['auth', 'approved'])
     ->name('dashboard.projects.detail');
 
 Route::get('/login-mvc', [\App\Http\Controllers\Auth\LoginController::class, 'show'])
@@ -44,3 +44,11 @@ Route::post('/login-mvc', [\App\Http\Controllers\Auth\LoginController::class, 'l
 Route::post('/logout', [\App\Http\Controllers\Auth\LoginController::class, 'logout'])
     ->name('logout')
     ->middleware('auth');
+
+// Admin routes
+Route::middleware(['auth', 'approved'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/users/create', [\App\Http\Controllers\Admin\UserController::class, 'create'])
+        ->name('users.create');
+    Route::post('/users', [\App\Http\Controllers\Admin\UserController::class, 'store'])
+        ->name('users.store');
+});
