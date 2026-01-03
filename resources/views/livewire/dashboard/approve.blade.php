@@ -289,13 +289,59 @@
                                     class="px-6 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 font-medium">
                                 Cancel
                             </button>
-                            <button wire:click="rejectUser"
-                                    class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium">
-                                Reject
-                            </button>
+                            
+                            <!-- Reject Dropdown -->
+                            <div x-data="{ open: false }" class="relative">
+                                <button @click="open = !open"
+                                        type="button"
+                                        class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium flex items-center space-x-2">
+                                    <span>ไม่อนุมัติ</span>
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </button>
+                                
+                                <div x-show="open"
+                                     @click.away="open = false"
+                                     x-transition:enter="transition ease-out duration-100"
+                                     x-transition:enter-start="transform opacity-0 scale-95"
+                                     x-transition:enter-end="transform opacity-100 scale-100"
+                                     x-transition:leave="transition ease-in duration-75"
+                                     x-transition:leave-start="transform opacity-100 scale-100"
+                                     x-transition:leave-end="transform opacity-0 scale-95"
+                                     class="absolute right-0 bottom-full mb-2 w-64 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-10"
+                                     style="display: none;">
+                                    <button wire:click="rejectAndDelete"
+                                            @click="open = false"
+                                            class="w-full text-left px-4 py-3 hover:bg-red-50 text-red-700 flex items-start space-x-2">
+                                        <svg class="w-5 h-5 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                        </svg>
+                                        <div>
+                                            <div class="font-semibold">ไม่อนุมัติและลบบัญชี</div>
+                                            <div class="text-xs text-slate-500">ลบบัญชีนี้ออกจากระบบถาวร</div>
+                                        </div>
+                                    </button>
+                                    <button wire:click="rejectAndRequestRevision"
+                                            @click="open = false"
+                                            class="w-full text-left px-4 py-3 hover:bg-yellow-50 text-yellow-700 flex items-start space-x-2">
+                                        <svg class="w-5 h-5 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                        </svg>
+                                        <div>
+                                            <div class="font-semibold">ไม่อนุมัติและส่งให้แก้ไข</div>
+                                            <div class="text-xs text-slate-500">ส่งอีเมลให้ผู้ใช้แก้ไขข้อมูล</div>
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
+                            
                             <button wire:click="approveUser"
-                                    class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium">
-                                Approve
+                                    class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium flex items-center space-x-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <span>อนุมัติ</span>
                             </button>
                         </div>
                     @endif

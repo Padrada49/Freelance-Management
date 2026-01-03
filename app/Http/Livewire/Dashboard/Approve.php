@@ -81,6 +81,64 @@ class Approve extends Component
         $this->closeUserDetail();
     }
 
+    public function rejectAndDelete()
+    {
+        if (!$this->selectedUser) {
+            return;
+        }
+
+        $userName = $this->selectedUser->name;
+
+        // Delete payment proofs first
+        if ($this->selectedProof) {
+            // Delete payment slip file if exists
+            if ($this->selectedProof->proof_file) {
+                \Storage::disk('public')->delete($this->selectedProof->proof_file);
+            }
+            $this->selectedProof->delete();
+        }
+
+        // Delete profile image if exists
+        if ($this->selectedUser->profile_image) {
+            \Storage::disk('public')->delete($this->selectedUser->profile_image);
+        }
+
+        // Delete user
+        $this->selectedUser->delete();
+
+        $this->dispatch('notify', message: "ลบบัญชี {$userName} เรียบร้อยแล้ว", type: 'success');
+        $this->closeUserDetail();
+    }
+
+    public function rejectAndRequestRevision()
+    {
+        if (!$this->selectedUser) {
+            return;
+        }
+
+        // Update payment proof status to rejected with note
+        if ($this->selectedProof) {
+            $this->selectedProof->update([
+                'status' => 'rejected',
+                'admin_note' => $this->adminNote ?: 'กรุณาตรวจสอบและแก้ไขข้อมูลให้ถูกต้อง',
+                'approved_by' => auth()->id(),
+                'approved_at' => now(),
+            ]);
+        }
+
+        // Keep user unapproved for revision
+        $this->selectedUser->update([
+            'is_approved' => false,
+            'approved_at' => null,
+        ]);
+
+        // TODO: Send email notification to user
+        // Mail::to($this->selectedUser->email)->send(new RevisionRequestMail($this->selectedUser, $this->adminNote));
+
+        $this->dispatch('notify', message: 'ส่งคำขอแก้ไขไปยังผู้ใช้แล้ว', type: 'warning');
+        $this->closeUserDetail();
+    }
+
     public function render()
     {
         // Get pending users (with or without payment proofs)
