@@ -6,7 +6,9 @@ use Livewire\Component;
 use Livewire\WithFileUploads;
 use App\Models\File;
 use App\Models\Setting;
+use App\Models\PaymentProof;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Hash;
 
 class Settings extends Component
 {
@@ -14,6 +16,14 @@ class Settings extends Component
 
     public $profileImage;
     public $previewUrl;
+    public $paymentSlipUrl;
+
+    // Profile settings
+    public $name;
+    public $email;
+    public $current_password;
+    public $new_password;
+    public $new_password_confirmation;
 
     // Pricing settings - Lifetime prices per role
     public $freelance_price;
@@ -22,8 +32,26 @@ class Settings extends Component
     public function mount()
     {
         $user = auth()->user();
+        
+        // Load user data
+        $this->name = $user->name;
+        $this->email = $user->email;
+        
+        // Load profile image with proper path checking
         if ($user->profile_image_path) {
-            $this->previewUrl = $user->profile_image_url;
+            // Check if file exists in storage
+            if (Storage::disk('public')->exists($user->profile_image_path)) {
+                $this->previewUrl = asset('storage/' . $user->profile_image_path);
+            } else {
+                // Fallback: try without storage prefix
+                $this->previewUrl = asset($user->profile_image_path);
+            }
+        }
+
+        // Load payment slip if exists
+        $paymentProof = PaymentProof::where('user_id', $user->id)->first();
+        if ($paymentProof && $paymentProof->payment_slip_path) {
+            $this->paymentSlipUrl = asset('storage/' . $paymentProof->payment_slip_path);
         }
 
         // Load pricing settings for admin
@@ -31,6 +59,81 @@ class Settings extends Component
             $this->freelance_price = Setting::get('freelance_price', 2990);
             $this->customer_price = Setting::get('customer_price', 1990);
         }
+    }
+
+    public function updateProfile()
+    {
+        $this->validate([
+            'name' => 'required|string|max:255',
+            'profileImage' => 'nullable|image|max:2048',
+        ]);
+
+        $user = auth()->user();
+        
+        // Update name
+        $user->update(['name' => $this->name]);
+
+        // Upload new profile image if provided
+        if ($this->profileImage) {
+            try {
+                // Delete old profile image if exists
+                if ($user->profile_image_path && Storage::disk('public')->exists($user->profile_image_path)) {
+                    Storage::disk('public')->delete($user->profile_image_path);
+                }
+
+                // Store the new image
+                $path = $this->profileImage->store('profiles', 'public');
+
+                // Save to files table
+                File::create([
+                    'module_name' => 'user',
+                    'module_id' => $user->id,
+                    'file_name' => $this->profileImage->getClientOriginalName(),
+                    'file_path' => $path,
+                    'file_type' => 'image',
+                    'mime_type' => $this->profileImage->getMimeType(),
+                    'file_size' => $this->profileImage->getSize(),
+                ]);
+
+                // Update user profile_image_path
+                $user->update(['profile_image_path' => $path]);
+
+                // Update preview URL
+                $this->previewUrl = asset('storage/' . $path);
+                
+                // Reset the file input
+                $this->reset('profileImage');
+                
+                $this->dispatch('notify', message: 'Profile and image updated successfully!', type: 'success');
+            } catch (\Exception $e) {
+                $this->dispatch('notify', message: 'Profile updated but image upload failed: ' . $e->getMessage(), type: 'error');
+            }
+        } else {
+            $this->dispatch('notify', message: 'Profile updated successfully!', type: 'success');
+        }
+    }
+
+    public function updatePassword()
+    {
+        $this->validate([
+            'current_password' => 'required',
+            'new_password' => 'required|min:8|confirmed',
+        ]);
+
+        $user = auth()->user();
+
+        if (!Hash::check($this->current_password, $user->password)) {
+            $this->addError('current_password', 'Current password is incorrect.');
+            return;
+        }
+
+        $user->update(['password' => Hash::make($this->new_password)]);
+
+        $this->current_password = '';
+        $this->new_password = '';
+        $this->new_password_confirmation = '';
+
+        $this->dispatch('notify', message: 'Password updated successfully!', type: 'success');
     }
 
     public function savePricing()
@@ -44,41 +147,6 @@ class Settings extends Component
         Setting::set('customer_price', $this->customer_price);
 
         $this->dispatch('notify', message: 'Pricing settings saved successfully!', type: 'success');
-    }
-
-    public function uploadProfileImage()
-    {
-        try {
-            $this->validate([
-                'profileImage' => 'required|image|max:2048',
-            ]);
-
-            $user = auth()->user();
-
-            // Store the image
-            $path = $this->profileImage->store('profiles', 'public');
-
-            // Save to database
-            File::create([
-                'module_name' => 'user',
-                'module_id' => $user->id,
-                'file_name' => $this->profileImage->getClientOriginalName(),
-                'file_path' => $path,
-                'file_type' => 'image',
-                'mime_type' => $this->profileImage->getMimeType(),
-                'file_size' => $this->profileImage->getSize(),
-            ]);
-
-            // Update user profile_image_path
-            $user->update(['profile_image_path' => $path]);
-
-            $this->previewUrl = asset('storage/' . $path);
-            $this->profileImage = null;
-
-            $this->dispatch('notify', message: 'Profile image updated successfully!', type: 'success');
-        } catch (\Exception $e) {
-            $this->dispatch('notify', message: 'Failed to upload image. ' . $e->getMessage(), type: 'error');
-        }
     }
 
     public function render()

@@ -30,7 +30,7 @@ class Container extends Component
             'tasks' => ['admin', 'freelance'],
             'account' => ['admin'],
             'approve' => ['admin'],
-            'settings' => ['admin'],
+            'settings' => ['admin', 'freelance', 'customer'],
         ];
 
         return in_array($userRole, $menuPermissions[$menuName] ?? []);
