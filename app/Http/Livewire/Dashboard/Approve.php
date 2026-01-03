@@ -3,16 +3,28 @@
 namespace App\Http\Livewire\Dashboard;
 
 use Livewire\Component;
+use Livewire\WithPagination;
 use App\Models\User;
 use App\Models\PaymentProof;
 
 class Approve extends Component
 {
+    use WithPagination;
+
     public $selectedUser = null;
     public $selectedProof = null;
     public $showUserDetail = false;
     public $adminNote = '';
     public $filterStatus = 'pending';
+
+    protected $queryString = ['filterStatus'];
+
+    public function updated($property)
+    {
+        if ($property === 'filterStatus') {
+            $this->resetPage();
+        }
+    }
 
     public function viewUser($userId)
     {
@@ -157,7 +169,7 @@ class Approve extends Component
             });
         }
 
-        $pendingUsers = $pendingQuery->latest()->get();
+        $pendingUsers = $pendingQuery->latest()->paginate(10, ['*'], 'pendingPage');
 
         // Get approved users
         $approvedUsers = User::with(['paymentProofs' => function($q) {
@@ -165,8 +177,7 @@ class Approve extends Component
         }])
         ->where('is_approved', true)
         ->latest()
-        ->take(10)
-        ->get();
+        ->paginate(10, ['*'], 'approvedPage');
 
         return view('livewire.dashboard.approve', [
             'pendingUsers' => $pendingUsers,

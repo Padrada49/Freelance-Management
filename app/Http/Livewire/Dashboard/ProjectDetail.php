@@ -531,6 +531,10 @@ class ProjectDetail extends Component
                     $this->dispatch('notify', message: 'Selected user is not a freelance.', type: 'error');
                     return;
                 }
+                if (!$freelance->is_approved) {
+                    $this->dispatch('notify', message: 'Selected freelance is not approved yet.', type: 'error');
+                    return;
+                }
             }
 
             $this->project->update([
@@ -549,16 +553,16 @@ class ProjectDetail extends Component
 
     public function render()
     {
-        // Get available managers (freelances only, excluding admin and customers)
-        $availableManagers = User::where('role', 'freelance')->get();
+        // Get available managers (freelances only, excluding admin and customers) - only approved
+        $availableManagers = User::where('role', 'freelance')->where('is_approved', true)->get();
 
         // Get task assignees from project managers only
         $taskAssignees = $this->project->managers;
 
         return view('livewire.dashboard.project-detail', [
-            'customers' => User::where('role', 'customer')->get(),
-            'users' => User::whereIn('role', ['admin', 'freelance', 'customer'])->get(),
-            'freelances' => User::where('role', 'freelance')->get(),
+            'customers' => User::where('role', 'customer')->where('is_approved', true)->get(),
+            'users' => User::whereIn('role', ['admin', 'freelance', 'customer'])->where('is_approved', true)->get(),
+            'freelances' => User::where('role', 'freelance')->where('is_approved', true)->get(),
             'availableManagers' => $availableManagers,
             'taskAssignees' => $taskAssignees,
         ]);

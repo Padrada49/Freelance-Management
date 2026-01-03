@@ -3,12 +3,15 @@
 namespace App\Http\Livewire\Dashboard;
 
 use Livewire\Component;
+use Livewire\WithPagination;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Task;
 use App\Models\Project;
 
 class Tasks extends Component
 {
+    use WithPagination;
+
     public $selectedTask = null;
     public $showTaskDetail = false;
     public $selectedProject = null;

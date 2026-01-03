@@ -112,7 +112,7 @@ class Projects extends Component
 
         return view('livewire.dashboard.projects', [
             'projects' => $projects,
-            'customers' => User::where('role', 'customer')->get(),
+            'customers' => User::where('role', 'customer')->where('is_approved', true)->get(),
         ]);
     }
 }

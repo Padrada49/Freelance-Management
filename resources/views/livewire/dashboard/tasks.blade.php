@@ -50,6 +50,12 @@
 
     <!-- Project Accordion List -->
     <div class="space-y-3">
+        <div class="flex items-center justify-between mb-2">
+            <p class="text-sm text-slate-600">
+                Showing <strong>{{ $projectGroups->count() }}</strong> project(s) with tasks
+            </p>
+        </div>
+
         @if($projectGroups->count() > 0)
             @foreach($projectGroups as $projectId => $group)
                 <div class="bg-white rounded-lg shadow overflow-hidden">

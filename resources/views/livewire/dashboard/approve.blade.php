@@ -110,13 +110,18 @@
                     @endforeach
                 </tbody>
             </table>
+            
+            <!-- Pagination -->
+            <div class="px-6 py-4 border-t border-slate-200">
+                {{ $pendingUsers->links() }}
+            </div>
         @endif
     </div>
 
     <!-- Recently Approved Users -->
     <div class="bg-white rounded-lg shadow overflow-hidden">
         <div class="px-6 py-4 border-b border-slate-200">
-            <h4 class="font-semibold text-lg">Recently Approved (Last 10)</h4>
+            <h4 class="font-semibold text-lg">Recently Approved</h4>
         </div>
 
         @if($approvedUsers->isEmpty())
@@ -187,6 +192,11 @@
                     @endforeach
                 </tbody>
             </table>
+            
+            <!-- Pagination -->
+            <div class="px-6 py-4 border-t border-slate-200">
+                {{ $approvedUsers->links() }}
+            </div>
         @endif
     </div>
 
