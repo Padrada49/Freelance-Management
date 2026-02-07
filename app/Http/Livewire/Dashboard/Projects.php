@@ -16,6 +16,12 @@ class Projects extends Component
 
     public $search = '';
     public $filterStatus = '';
+    public $filterFreelance = [];
+    public $filterCustomer = [];
+    public $freelanceSearch = '';
+    public $customerSearch = '';
+    public $showFreelanceDropdown = false;
+    public $showCustomerDropdown = false;
 
     // Project form fields
     public $name;
@@ -23,12 +29,51 @@ class Projects extends Component
     public $status = 'active';
     public $selectedCustomers = [];
 
-    protected $queryString = ['search', 'filterStatus'];
+    protected $queryString = ['search', 'filterStatus', 'filterFreelance', 'filterCustomer'];
 
     public function updated($property)
     {
-        if (in_array($property, ['search', 'filterStatus'])) {
+        if (in_array($property, ['search', 'filterStatus', 'filterFreelance', 'filterCustomer'])) {
             $this->resetPage();
+        }
+    }
+
+    public function clearFilters()
+    {
+        $this->search = '';
+        $this->filterStatus = '';
+        $this->filterFreelance = [];
+        $this->filterCustomer = [];
+        $this->freelanceSearch = '';
+        $this->customerSearch = '';
+        $this->resetPage();
+    }
+
+    public function toggleFreelanceDropdown()
+    {
+        $this->showFreelanceDropdown = !$this->showFreelanceDropdown;
+    }
+
+    public function toggleCustomerDropdown()
+    {
+        $this->showCustomerDropdown = !$this->showCustomerDropdown;
+    }
+
+    public function toggleFreelanceFilter($id)
+    {
+        if (in_array($id, $this->filterFreelance)) {
+            $this->filterFreelance = array_diff($this->filterFreelance, [$id]);
+        } else {
+            $this->filterFreelance[] = $id;
+        }
+    }
+
+    public function toggleCustomerFilter($id)
+    {
+        if (in_array($id, $this->filterCustomer)) {
+            $this->filterCustomer = array_diff($this->filterCustomer, [$id]);
+        } else {
+            $this->filterCustomer[] = $id;
         }
     }
 
@@ -108,11 +153,41 @@ class Projects extends Component
             $query->where('status', $this->filterStatus);
         }
 
+        // Freelancer filter (multiple)
+        if (!empty($this->filterFreelance)) {
+            $query->whereIn('freelance_id', $this->filterFreelance);
+        }
+
+        // Customer filter (multiple)
+        if (!empty($this->filterCustomer)) {
+            $query->whereHas('customers', function ($q) {
+                $q->whereIn('customer_id', $this->filterCustomer);
+            });
+        }
+
         $projects = $query->with('creator', 'freelance', 'customers')->paginate(12);
+
+        // Get available freelancers and customers for filter dropdowns
+        $allFreelancers = User::where('role', 'freelance')->where('is_approved', true)->get();
+        $allCustomers = User::where('role', 'customer')->where('is_approved', true)->get();
+
+        // Filter lists based on search
+        $freelancers = $allFreelancers->filter(function ($f) {
+            return empty($this->freelanceSearch) || stripos($f->name, $this->freelanceSearch) !== false || stripos($f->email, $this->freelanceSearch) !== false;
+        });
+        $customers = $allCustomers->filter(function ($c) {
+            return empty($this->customerSearch) || stripos($c->name, $this->customerSearch) !== false || stripos($c->email, $this->customerSearch) !== false;
+        });
+
+        $hasActiveFilters = $this->search || $this->filterStatus || !empty($this->filterFreelance) || !empty($this->filterCustomer);
 
         return view('livewire.dashboard.projects', [
             'projects' => $projects,
-            'customers' => User::where('role', 'customer')->where('is_approved', true)->get(),
+            'customers' => $allCustomers,
+            'freelancers' => $allFreelancers,
+            'filteredFreelancers' => $freelancers,
+            'filteredCustomers' => $customers,
+            'hasActiveFilters' => $hasActiveFilters,
         ]);
     }
 }

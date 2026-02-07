@@ -12,9 +12,9 @@
 
     <!-- Search & Filter -->
     <div class="bg-white rounded shadow p-4 mb-6">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Search Projects</label>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Search by Name</label>
                 <input type="text" wire:model.live="search" placeholder="Search..." class="w-full border px-3 py-2 rounded text-sm" />
             </div>
 
@@ -28,10 +28,123 @@
                 </select>
             </div>
 
-            <div class="flex items-end">
-                <div class="text-sm text-slate-600">
-                    Showing <strong>{{ $projects->count() }}</strong> of <strong>{{ $projects->total() }}</strong> projects
-                </div>
+            <!-- Freelancer Multi-Select -->
+            <div class="relative">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Freelancers</label>
+                <button wire:click="toggleFreelanceDropdown"
+                        type="button"
+                        class="w-full border px-3 py-2 rounded text-sm text-left flex items-center justify-between hover:bg-slate-50">
+                    <span class="text-gray-600">
+                        @if(empty($filterFreelance))
+                            All Freelancers
+                        @else
+                            {{ count($filterFreelance) }} selected
+                        @endif
+                    </span>
+                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+                
+                @if($showFreelanceDropdown)
+                    <div class="absolute top-full left-0 right-0 mt-1 bg-white border rounded shadow-lg z-20 max-h-64 overflow-hidden flex flex-col">
+                        <input type="text" 
+                               wire:model.live="freelanceSearch"
+                               placeholder="Search freelancers..."
+                               class="border-b px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                        <div class="overflow-y-auto max-h-48 divide-y">
+                            @forelse($filteredFreelancers as $freelancer)
+                                <label class="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 cursor-pointer">
+                                    <input type="checkbox" 
+                                           wire:change="toggleFreelanceFilter({{ $freelancer->id }})"
+                                           @checked(in_array($freelancer->id, $filterFreelance))
+                                           class="rounded" />
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm font-medium truncate">{{ $freelancer->name }}</p>
+                                        <p class="text-xs text-slate-500 truncate">{{ $freelancer->email }}</p>
+                                    </div>
+                                </label>
+                            @empty
+                                <div class="px-3 py-4 text-sm text-slate-500 text-center">
+                                    No freelancers found
+                                </div>
+                            @endforelse
+                        </div>
+                        <div class="border-t p-2 flex justify-end gap-2 bg-slate-50">
+                            <button wire:click="toggleFreelanceDropdown"
+                                    type="button"
+                                    class="px-2 py-1 text-xs border rounded hover:bg-slate-100">
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                @endif
+            </div>
+
+            <!-- Customer Multi-Select -->
+            <div class="relative">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Customers</label>
+                <button wire:click="toggleCustomerDropdown"
+                        type="button"
+                        class="w-full border px-3 py-2 rounded text-sm text-left flex items-center justify-between hover:bg-slate-50">
+                    <span class="text-gray-600">
+                        @if(empty($filterCustomer))
+                            All Customers
+                        @else
+                            {{ count($filterCustomer) }} selected
+                        @endif
+                    </span>
+                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+                
+                @if($showCustomerDropdown)
+                    <div class="absolute top-full left-0 right-0 mt-1 bg-white border rounded shadow-lg z-20 max-h-64 overflow-hidden flex flex-col">
+                        <input type="text" 
+                               wire:model.live="customerSearch"
+                               placeholder="Search customers..."
+                               class="border-b px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                        <div class="overflow-y-auto max-h-48 divide-y">
+                            @forelse($filteredCustomers as $customer)
+                                <label class="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 cursor-pointer">
+                                    <input type="checkbox" 
+                                           wire:change="toggleCustomerFilter({{ $customer->id }})"
+                                           @checked(in_array($customer->id, $filterCustomer))
+                                           class="rounded" />
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm font-medium truncate">{{ $customer->name }}</p>
+                                        <p class="text-xs text-slate-500 truncate">{{ $customer->email }}</p>
+                                    </div>
+                                </label>
+                            @empty
+                                <div class="px-3 py-4 text-sm text-slate-500 text-center">
+                                    No customers found
+                                </div>
+                            @endforelse
+                        </div>
+                        <div class="border-t p-2 flex justify-end gap-2 bg-slate-50">
+                            <button wire:click="toggleCustomerDropdown"
+                                    type="button"
+                                    class="px-2 py-1 text-xs border rounded hover:bg-slate-100">
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                @endif
+            </div>
+
+            <!-- Clear Filters Button -->
+            <div class="flex items-end gap-2">
+                @if($hasActiveFilters)
+                    <button wire:click="clearFilters" class="w-full px-3 py-2 bg-slate-200 hover:bg-slate-300 text-sm rounded font-medium transition">
+                        Clear Filters
+                    </button>
+                @else
+                    <div class="text-sm text-slate-600">
+                        Showing <strong>{{ $projects->count() }}</strong> of <strong>{{ $projects->total() }}</strong>
+                    </div>
+                @endif
             </div>
         </div>
     </div>
