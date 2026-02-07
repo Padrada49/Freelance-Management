@@ -13,7 +13,18 @@ class Home extends Component
     public function render()
     {
         $user = Auth::user();
-        $data = [];
+        $data = [
+            'totalProjects' => 0,
+            'activeProjects' => 0,
+            'completedProjects' => 0,
+            'pendingProjects' => 0,
+            'totalTasks' => 0,
+            'todoTasks' => 0,
+            'inProgressTasks' => 0,
+            'completedTasks' => 0,
+            'recentProjects' => collect(),
+            'recentTasks' => collect(),
+        ];
 
         if ($user->role === 'freelance') {
             // Projects where freelance is owner or assigned
@@ -45,13 +56,6 @@ class Home extends Component
                 return $task->due_date && $task->due_date->isPast() && $task->status !== 'completed';
             })->count();
 
-            // Task status breakdown for chart
-            $data['taskStatusData'] = [
-                'todo' => $data['todoTasks'],
-                'in_progress' => $data['inProgressTasks'],
-                'completed' => $data['completedTasks']
-            ];
-
             // Recent projects
             $data['recentProjects'] = $allProjects->sortByDesc('updated_at')->take(5);
 
@@ -82,21 +86,8 @@ class Home extends Component
             $data['inProgressTasks'] = $allTasks->where('status', 'in_progress')->count();
             $data['completedTasks'] = $allTasks->where('status', 'completed')->count();
 
-            // User role distribution for chart
-            $data['userRoleData'] = [
-                'admin' => $data['adminUsers'],
-                'freelance' => $data['freelanceUsers'],
-                'customer' => $data['customerUsers']
-            ];
-
-            // Project status distribution
-            $data['projectStatusData'] = [
-                'active' => $data['activeProjects'],
-                'completed' => $data['completedProjects'],
-                'pending' => $data['pendingProjects']
-            ];
-
             $data['recentProjects'] = $allProjects->sortByDesc('updated_at')->take(5);
+
         } elseif ($user->role === 'customer') {
             // Customer sees their projects
             $projects = Project::whereHas('customers', function($q) use ($user) {
@@ -107,13 +98,6 @@ class Home extends Component
             $data['activeProjects'] = $projects->where('status', 'active')->count();
             $data['completedProjects'] = $projects->where('status', 'completed')->count();
             $data['pendingProjects'] = $projects->where('status', 'pending')->count();
-
-            // Project status breakdown
-            $data['projectStatusData'] = [
-                'active' => $data['activeProjects'],
-                'completed' => $data['completedProjects'],
-                'pending' => $data['pendingProjects']
-            ];
 
             $data['recentProjects'] = $projects->sortByDesc('updated_at')->take(5);
         }

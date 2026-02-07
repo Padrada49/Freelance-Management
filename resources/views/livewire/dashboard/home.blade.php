@@ -96,7 +96,7 @@
                     </svg>
                     การกระจายผู้ใช้ตาม Role
                 </h4>
-                <div class="max-h-64 flex items-center justify-center">
+                <div style="position: relative; height: 300px; width: 100%;">
                     <canvas id="userRoleChart"></canvas>
                 </div>
                 <div class="mt-4 grid grid-cols-3 gap-2 text-xs">
@@ -123,7 +123,7 @@
                     </svg>
                     สถานะโปรเจกต์
                 </h4>
-                <div class="max-h-64 flex items-center justify-center">
+                <div style="position: relative; height: 300px; width: 100%;">
                     <canvas id="projectStatusChart"></canvas>
                 </div>
                 <div class="mt-4 grid grid-cols-3 gap-2 text-xs">
@@ -295,8 +295,8 @@
                         </svg>
                         การกระจายสถานะงาน
                     </h4>
-                    <button 
-                        wire:click="$refresh" 
+                    <!-- <button
+                        wire:click="$refresh"
                         wire:loading.attr="disabled"
                         class="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed">
                         <svg wire:loading.remove wire:target="$refresh" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -308,9 +308,9 @@
                         </svg>
                         <span wire:loading.remove wire:target="$refresh">รีเฟรช</span>
                         <span wire:loading wire:target="$refresh">กำลังโหลด...</span>
-                    </button>
+                    </button> -->
                 </div>
-                <div class="max-h-80 flex items-center justify-center">
+                <div style="position: relative; height: 300px; width: 100%;">
                     <canvas id="taskStatusChart"></canvas>
                 </div>
                 <div class="mt-4 grid grid-cols-3 gap-2 text-xs">
@@ -507,7 +507,7 @@
                     </svg>
                     สถานะโปรเจกต์
                 </h4>
-                <div class="max-h-80 flex items-center justify-center">
+                <div style="position: relative; height: 300px; width: 100%;">
                     <canvas id="projectStatusChart"></canvas>
                 </div>
                 <div class="mt-4 grid grid-cols-3 gap-2 text-xs">
@@ -572,8 +572,19 @@
 </div>
 
 <script>
+    let charts = {};
+
+    function destroyAllCharts() {
+        Object.keys(charts).forEach(key => {
+            if (charts[key]) {
+                charts[key].destroy();
+                delete charts[key];
+            }
+        });
+    }
+
     document.addEventListener('livewire:load', function () {
-        initCharts();
+        setTimeout(() => initCharts(), 100);
     });
 
     // For Livewire v3
@@ -581,17 +592,42 @@
         setTimeout(() => initCharts(), 100);
     });
 
+    // Listen for Livewire updates
+    if (typeof Livewire !== 'undefined') {
+        Livewire.hook('effect', ({ succeed }) => {
+            succeed(() => {
+                destroyAllCharts();
+                setTimeout(() => initCharts(), 100);
+            });
+        });
+    }
+
     function initCharts() {
         @if(auth()->user()->role === 'admin')
-            // User Role Distribution Pie Chart
-            const userRoleCtx = document.getElementById('userRoleChart');
-            if (userRoleCtx) {
-                new Chart(userRoleCtx, {
+            initAdminCharts();
+        @elseif(auth()->user()->role === 'freelance')
+            initFreelanceCharts();
+        @elseif(auth()->user()->role === 'customer')
+            initCustomerCharts();
+        @endif
+    }
+
+    function initAdminCharts() {
+        // User Role Distribution Chart
+        const userRoleCtx = document.getElementById('userRoleChart');
+        if (userRoleCtx && userRoleCtx.offsetParent !== null) {
+            const adminUsers = {{ $adminUsers ?? 0 }};
+            const freelanceUsers = {{ $freelanceUsers ?? 0 }};
+            const customerUsers = {{ $customerUsers ?? 0 }};
+            const totalUsers = adminUsers + freelanceUsers + customerUsers;
+
+            if (totalUsers > 0) {
+                charts.userRole = new Chart(userRoleCtx, {
                     type: 'doughnut',
                     data: {
                         labels: ['Admin', 'Freelance', 'Customer'],
                         datasets: [{
-                            data: [{{ $adminUsers }}, {{ $freelanceUsers }}, {{ $customerUsers }}],
+                            data: [adminUsers, freelanceUsers, customerUsers],
                             backgroundColor: ['#EF4444', '#3B82F6', '#10B981'],
                             borderWidth: 2,
                             borderColor: '#fff'
@@ -601,21 +637,50 @@
                         responsive: true,
                         maintainAspectRatio: false,
                         plugins: {
-                            legend: { display: false }
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    font: { size: 12 },
+                                    padding: 15,
+                                    usePointStyle: true
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0,0,0,0.8)',
+                                padding: 10,
+                                titleFont: { size: 13 },
+                                bodyFont: { size: 12 },
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.label || '';
+                                        let value = context.parsed || 0;
+                                        let total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        let percentage = ((value / total) * 100).toFixed(1);
+                                        return label + ': ' + value + ' (' + percentage + '%)';
+                                    }
+                                }
+                            }
                         }
                     }
                 });
             }
+        }
 
-            // Project Status Pie Chart
-            const projectStatusCtx = document.getElementById('projectStatusChart');
-            if (projectStatusCtx) {
-                new Chart(projectStatusCtx, {
+        // Project Status Chart
+        const projectStatusCtx = document.getElementById('projectStatusChart');
+        if (projectStatusCtx && projectStatusCtx.offsetParent !== null) {
+            const activeProjects = {{ $activeProjects ?? 0 }};
+            const completedProjects = {{ $completedProjects ?? 0 }};
+            const pendingProjects = {{ $pendingProjects ?? 0 }};
+            const totalProjects = activeProjects + completedProjects + pendingProjects;
+
+            if (totalProjects > 0) {
+                charts.projectStatus = new Chart(projectStatusCtx, {
                     type: 'doughnut',
                     data: {
                         labels: ['Active', 'Completed', 'Pending'],
                         datasets: [{
-                            data: [{{ $activeProjects }}, {{ $completedProjects }}, {{ $pendingProjects }}],
+                            data: [activeProjects, completedProjects, pendingProjects],
                             backgroundColor: ['#10B981', '#3B82F6', '#F59E0B'],
                             borderWidth: 2,
                             borderColor: '#fff'
@@ -625,22 +690,52 @@
                         responsive: true,
                         maintainAspectRatio: false,
                         plugins: {
-                            legend: { display: false }
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    font: { size: 12 },
+                                    padding: 15,
+                                    usePointStyle: true
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0,0,0,0.8)',
+                                padding: 10,
+                                titleFont: { size: 13 },
+                                bodyFont: { size: 12 },
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.label || '';
+                                        let value = context.parsed || 0;
+                                        let total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        let percentage = ((value / total) * 100).toFixed(1);
+                                        return label + ': ' + value + ' (' + percentage + '%)';
+                                    }
+                                }
+                            }
                         }
                     }
                 });
             }
+        }
+    }
 
-        @elseif(auth()->user()->role === 'freelance')
-            // Task Status Doughnut Chart
-            const taskStatusCtx = document.getElementById('taskStatusChart');
-            if (taskStatusCtx) {
-                new Chart(taskStatusCtx, {
+    function initFreelanceCharts() {
+        // Task Status Chart
+        const taskStatusCtx = document.getElementById('taskStatusChart');
+        if (taskStatusCtx && taskStatusCtx.offsetParent !== null) {
+            const todoTasks = {{ $todoTasks ?? 0 }};
+            const inProgressTasks = {{ $inProgressTasks ?? 0 }};
+            const completedTasks = {{ $completedTasks ?? 0 }};
+            const totalTasks = todoTasks + inProgressTasks + completedTasks;
+
+            if (totalTasks > 0) {
+                charts.taskStatus = new Chart(taskStatusCtx, {
                     type: 'doughnut',
                     data: {
                         labels: ['Todo', 'In Progress', 'Completed'],
                         datasets: [{
-                            data: [{{ $todoTasks }}, {{ $inProgressTasks }}, {{ $completedTasks }}],
+                            data: [todoTasks, inProgressTasks, completedTasks],
                             backgroundColor: ['#F59E0B', '#3B82F6', '#10B981'],
                             borderWidth: 2,
                             borderColor: '#fff'
@@ -650,22 +745,52 @@
                         responsive: true,
                         maintainAspectRatio: false,
                         plugins: {
-                            legend: { display: false }
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    font: { size: 12 },
+                                    padding: 15,
+                                    usePointStyle: true
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0,0,0,0.8)',
+                                padding: 10,
+                                titleFont: { size: 13 },
+                                bodyFont: { size: 12 },
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.label || '';
+                                        let value = context.parsed || 0;
+                                        let total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        let percentage = ((value / total) * 100).toFixed(1);
+                                        return label + ': ' + value + ' (' + percentage + '%)';
+                                    }
+                                }
+                            }
                         }
                     }
                 });
             }
+        }
+    }
 
-        @elseif(auth()->user()->role === 'customer')
-            // Project Status Pie Chart
-            const projectStatusCtx = document.getElementById('projectStatusChart');
-            if (projectStatusCtx) {
-                new Chart(projectStatusCtx, {
+    function initCustomerCharts() {
+        // Project Status Chart
+        const projectStatusCtx = document.getElementById('projectStatusChart');
+        if (projectStatusCtx && projectStatusCtx.offsetParent !== null) {
+            const activeProjects = {{ $activeProjects ?? 0 }};
+            const completedProjects = {{ $completedProjects ?? 0 }};
+            const pendingProjects = {{ $pendingProjects ?? 0 }};
+            const totalProjects = activeProjects + completedProjects + pendingProjects;
+
+            if (totalProjects > 0) {
+                charts.projectStatus = new Chart(projectStatusCtx, {
                     type: 'doughnut',
                     data: {
                         labels: ['Active', 'Completed', 'Pending'],
                         datasets: [{
-                            data: [{{ $activeProjects }}, {{ $completedProjects }}, {{ $pendingProjects }}],
+                            data: [activeProjects, completedProjects, pendingProjects],
                             backgroundColor: ['#10B981', '#3B82F6', '#F59E0B'],
                             borderWidth: 2,
                             borderColor: '#fff'
@@ -675,11 +800,33 @@
                         responsive: true,
                         maintainAspectRatio: false,
                         plugins: {
-                            legend: { display: false }
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    font: { size: 12 },
+                                    padding: 15,
+                                    usePointStyle: true
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0,0,0,0.8)',
+                                padding: 10,
+                                titleFont: { size: 13 },
+                                bodyFont: { size: 12 },
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.label || '';
+                                        let value = context.parsed || 0;
+                                        let total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        let percentage = ((value / total) * 100).toFixed(1);
+                                        return label + ': ' + value + ' (' + percentage + '%)';
+                                    }
+                                }
+                            }
                         }
                     }
                 });
             }
-        @endif
+        }
     }
 </script>
