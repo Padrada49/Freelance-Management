@@ -17,56 +17,86 @@ class Home extends Component
 
         if ($user->role === 'freelance') {
             // Projects where freelance is owner or assigned
-            $projects = Project::where(function($q) use ($user) {
+            $allProjects = Project::where(function($q) use ($user) {
                 $q->where('freelance_id', $user->id)
                   ->orWhere('created_by', $user->id)
                   ->orWhereHas('managers', function($q2) use ($user) {
                       $q2->where('user_id', $user->id);
                   });
-            })->where('status', 'active')->get();
+            })->get();
 
-            $data['totalProjects'] = $projects->count();
-            $data['activeProjects'] = $projects->where('status', 'active')->count();
-            $data['completedProjects'] = Project::where(function($q) use ($user) {
-                $q->where('freelance_id', $user->id)
-                  ->orWhere('created_by', $user->id)
-                  ->orWhereHas('managers', function($q2) use ($user) {
-                      $q2->where('user_id', $user->id);
-                  });
-            })->where('status', 'completed')->count();
+            $projects = $allProjects->where('status', 'active');
+            $data['totalProjects'] = $allProjects->count();
+            $data['activeProjects'] = $projects->count();
+            $data['completedProjects'] = $allProjects->where('status', 'completed')->count();
+            $data['pendingProjects'] = $allProjects->where('status', 'pending')->count();
 
             // Tasks assigned to or created by freelance
-            $tasks = Task::whereHas('project', function($q) {
-                $q->where('status', 'active');
-            })->where(function($q) use ($user) {
+            $allTasks = Task::where(function($q) use ($user) {
                 $q->where('assigned_to', $user->id)
                   ->orWhere('created_by', $user->id);
             })->get();
 
-            $data['totalTasks'] = $tasks->count();
-            $data['todoTasks'] = $tasks->where('status', 'todo')->count();
-            $data['inProgressTasks'] = $tasks->where('status', 'in_progress')->count();
-            $data['completedTasks'] = $tasks->where('status', 'completed')->count();
-            $data['overdueTasks'] = $tasks->filter(function($task) {
+            $data['totalTasks'] = $allTasks->count();
+            $data['todoTasks'] = $allTasks->where('status', 'todo')->count();
+            $data['inProgressTasks'] = $allTasks->where('status', 'in_progress')->count();
+            $data['completedTasks'] = $allTasks->where('status', 'completed')->count();
+            $data['overdueTasks'] = $allTasks->filter(function($task) {
                 return $task->due_date && $task->due_date->isPast() && $task->status !== 'completed';
             })->count();
 
+            // Task status breakdown for chart
+            $data['taskStatusData'] = [
+                'todo' => $data['todoTasks'],
+                'in_progress' => $data['inProgressTasks'],
+                'completed' => $data['completedTasks']
+            ];
+
             // Recent projects
-            $data['recentProjects'] = $projects->sortByDesc('updated_at')->take(5);
+            $data['recentProjects'] = $allProjects->sortByDesc('updated_at')->take(5);
 
             // Recent tasks
-            $data['recentTasks'] = $tasks->sortByDesc('updated_at')->take(5);
+            $data['recentTasks'] = $allTasks->sortByDesc('updated_at')->take(5);
 
         } elseif ($user->role === 'admin') {
             // Admin sees all data
-            $data['totalProjects'] = Project::count();
-            $data['activeProjects'] = Project::where('status', 'active')->count();
-            $data['completedProjects'] = Project::where('status', 'completed')->count();
-            $data['totalUsers'] = User::count();
-            $data['freelanceUsers'] = User::where('role', 'freelance')->count();
-            $data['customerUsers'] = User::where('role', 'customer')->count();
-            $data['totalTasks'] = Task::count();
-            $data['recentProjects'] = Project::orderBy('updated_at', 'desc')->take(5)->get();
+            $allProjects = Project::all();
+            $data['totalProjects'] = $allProjects->count();
+            $data['activeProjects'] = $allProjects->where('status', 'active')->count();
+            $data['completedProjects'] = $allProjects->where('status', 'completed')->count();
+            $data['pendingProjects'] = $allProjects->where('status', 'pending')->count();
+
+            // User statistics
+            $allUsers = User::all();
+            $data['totalUsers'] = $allUsers->count();
+            $data['freelanceUsers'] = $allUsers->where('role', 'freelance')->count();
+            $data['customerUsers'] = $allUsers->where('role', 'customer')->count();
+            $data['adminUsers'] = $allUsers->where('role', 'admin')->count();
+            $data['pendingApprovals'] = $allUsers->where('is_approved', false)->count();
+            $data['approvedUsers'] = $allUsers->where('is_approved', true)->count();
+
+            // Task statistics
+            $allTasks = Task::all();
+            $data['totalTasks'] = $allTasks->count();
+            $data['todoTasks'] = $allTasks->where('status', 'todo')->count();
+            $data['inProgressTasks'] = $allTasks->where('status', 'in_progress')->count();
+            $data['completedTasks'] = $allTasks->where('status', 'completed')->count();
+
+            // User role distribution for chart
+            $data['userRoleData'] = [
+                'admin' => $data['adminUsers'],
+                'freelance' => $data['freelanceUsers'],
+                'customer' => $data['customerUsers']
+            ];
+
+            // Project status distribution
+            $data['projectStatusData'] = [
+                'active' => $data['activeProjects'],
+                'completed' => $data['completedProjects'],
+                'pending' => $data['pendingProjects']
+            ];
+
+            $data['recentProjects'] = $allProjects->sortByDesc('updated_at')->take(5);
         } elseif ($user->role === 'customer') {
             // Customer sees their projects
             $projects = Project::whereHas('customers', function($q) use ($user) {
@@ -76,6 +106,15 @@ class Home extends Component
             $data['totalProjects'] = $projects->count();
             $data['activeProjects'] = $projects->where('status', 'active')->count();
             $data['completedProjects'] = $projects->where('status', 'completed')->count();
+            $data['pendingProjects'] = $projects->where('status', 'pending')->count();
+
+            // Project status breakdown
+            $data['projectStatusData'] = [
+                'active' => $data['activeProjects'],
+                'completed' => $data['completedProjects'],
+                'pending' => $data['pendingProjects']
+            ];
+
             $data['recentProjects'] = $projects->sortByDesc('updated_at')->take(5);
         }
 
