@@ -45,17 +45,17 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                     </svg>
                 </button>
-                
+
                 @if($showFreelanceDropdown)
                     <div class="absolute top-full left-0 right-0 mt-1 bg-white border rounded shadow-lg z-20 max-h-64 overflow-hidden flex flex-col">
-                        <input type="text" 
+                        <input type="text"
                                wire:model.live="freelanceSearch"
                                placeholder="Search freelancers..."
                                class="border-b px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
                         <div class="overflow-y-auto max-h-48 divide-y">
                             @forelse($filteredFreelancers as $freelancer)
                                 <label class="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 cursor-pointer">
-                                    <input type="checkbox" 
+                                    <input type="checkbox"
                                            wire:change="toggleFreelanceFilter({{ $freelancer->id }})"
                                            @checked(in_array($freelancer->id, $filterFreelance))
                                            class="rounded" />
@@ -98,17 +98,17 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                     </svg>
                 </button>
-                
+
                 @if($showCustomerDropdown)
                     <div class="absolute top-full left-0 right-0 mt-1 bg-white border rounded shadow-lg z-20 max-h-64 overflow-hidden flex flex-col">
-                        <input type="text" 
+                        <input type="text"
                                wire:model.live="customerSearch"
                                placeholder="Search customers..."
                                class="border-b px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
                         <div class="overflow-y-auto max-h-48 divide-y">
                             @forelse($filteredCustomers as $customer)
                                 <label class="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 cursor-pointer">
-                                    <input type="checkbox" 
+                                    <input type="checkbox"
                                            wire:change="toggleCustomerFilter({{ $customer->id }})"
                                            @checked(in_array($customer->id, $filterCustomer))
                                            class="rounded" />
